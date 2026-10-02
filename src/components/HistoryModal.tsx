@@ -41,10 +41,18 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
   const [statusFilter, setStatusFilter] = useState<'all' | InvoiceStatus>('all');
 
   const filteredInvoices = invoices.filter((inv) => {
+    const term = searchTerm.toLowerCase();
     const matchesSearch =
-      inv.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      inv.anep_bc_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      inv.ad_title.toLowerCase().includes(searchTerm.toLowerCase());
+      inv.invoice_number.toLowerCase().includes(term) ||
+      (inv.advertiser_name || '').toLowerCase().includes(term) ||
+      (inv.anep_bc_number || '').toLowerCase().includes(term) ||
+      (inv.ad_title || '').toLowerCase().includes(term) ||
+      (inv.items &&
+        inv.items.some(
+          (it) =>
+            it.anep_bc_number.toLowerCase().includes(term) ||
+            it.ad_title.toLowerCase().includes(term)
+        ));
 
     const matchesStatus = statusFilter === 'all' || inv.status === statusFilter;
     return matchesSearch && matchesStatus;
@@ -148,30 +156,35 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                 className="py-3.5 px-3 rounded-xl hover:bg-slate-50 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-3 group"
               >
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <span className="font-mono text-sm font-bold text-slate-900">
                       {inv.invoice_number}
                     </span>
                     <span className="text-slate-300">•</span>
                     <span className="font-mono text-xs text-blue-700 font-semibold">
-                      {inv.anep_bc_number}
+                      {inv.anep_bc_number || inv.items[0]?.anep_bc_number || 'Sans N° BC'}
                     </span>
+                    {inv.items && inv.items.length > 1 && (
+                      <Badge variant="primary" className="text-[10px]">
+                        {inv.items.length} BCs
+                      </Badge>
+                    )}
                     {getStatusBadge(inv.status)}
                   </div>
 
                   <p className="text-xs text-slate-700 font-medium line-clamp-1">
-                    {inv.ad_title}
+                    {inv.ad_title || inv.items[0]?.ad_title || 'Annonce légale'}
                   </p>
 
-                  <div className="flex items-center gap-3 text-[11px] text-slate-400 mt-1">
+                  <div className="flex items-center gap-3 text-[11px] text-slate-400 mt-1 flex-wrap">
                     <span className="flex items-center gap-1">
                       <Calendar className="w-3 h-3 text-slate-400" />
                       Émise le {inv.invoice_date}
                     </span>
                     <span>•</span>
-                    <span>Parution : {inv.publication_date}</span>
+                    <span>Parution : {inv.publication_date || inv.items[0]?.publication_date}</span>
                     <span>•</span>
-                    <span>Format : {inv.ad_format}</span>
+                    <span>Format : {inv.ad_format || inv.items[0]?.ad_format}</span>
                   </div>
                 </div>
 

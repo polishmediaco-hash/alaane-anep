@@ -79,6 +79,30 @@ export function isSupabaseConnected(): boolean {
 // Invoices CRUD (Supabase with LocalStorage Fallback)
 // ==========================================
 
+function normalizeInvoice(inv: any): Invoice {
+  const items = Array.isArray(inv.items) && inv.items.length > 0
+    ? inv.items
+    : [{
+        id: crypto.randomUUID(),
+        anep_bc_number: inv.anep_bc_number || '',
+        anep_bc_date: inv.anep_bc_date || inv.invoice_date || '',
+        advertiser_name: inv.advertiser_name || '',
+        ad_title: inv.ad_title || '',
+        publication_date: inv.publication_date || inv.invoice_date || '',
+        edition_number: inv.edition_number || '',
+        ad_format: inv.ad_format || '4 colonnes x 15 cm (1/2 page)',
+        amount_ht: Number(inv.amount_ht) || 0,
+        bc_image_url: inv.bc_image_url,
+        temoin_image_url: inv.temoin_image_url,
+      }];
+
+  return {
+    ...inv,
+    items,
+    advertiser_name: inv.advertiser_name || (items[0]?.advertiser_name) || "Direction des Travaux Publics (DTP) — Wilaya d'Alger",
+  };
+}
+
 export async function fetchInvoices(): Promise<Invoice[]> {
   const supabase = getSupabase();
 
@@ -90,7 +114,7 @@ export async function fetchInvoices(): Promise<Invoice[]> {
         .order('created_at', { ascending: false });
 
       if (!error && data) {
-        return data as Invoice[];
+        return (data as any[]).map(normalizeInvoice);
       }
       console.warn('Supabase fetch failed, falling back to local:', error?.message);
     } catch (e) {
@@ -102,7 +126,8 @@ export async function fetchInvoices(): Promise<Invoice[]> {
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_INVOICES_KEY);
     if (raw) {
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed.map(normalizeInvoice) : [];
     }
   } catch (e) {
     console.error('Failed reading invoices from localStorage:', e);
@@ -113,8 +138,9 @@ export async function fetchInvoices(): Promise<Invoice[]> {
 
 export async function saveInvoice(invoice: Invoice): Promise<Invoice> {
   const supabase = getSupabase();
+  const normalizedInput = normalizeInvoice(invoice);
   const updatedInvoice = {
-    ...invoice,
+    ...normalizedInput,
     updated_at: new Date().toISOString(),
   };
 
@@ -127,9 +153,9 @@ export async function saveInvoice(invoice: Invoice): Promise<Invoice> {
         .single();
 
       if (!error && data) {
-        // Also sync local cache
-        syncInvoiceToLocal(data as Invoice);
-        return data as Invoice;
+        const normalized = normalizeInvoice(data);
+        syncInvoiceToLocal(normalized);
+        return normalized;
       }
       console.warn('Supabase save error, persisting locally:', error?.message);
     } catch (e) {

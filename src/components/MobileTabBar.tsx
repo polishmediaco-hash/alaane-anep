@@ -52,7 +52,7 @@ export const MobileTabBar: React.FC<MobileTabBarProps> = ({
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
               className={cn(
-                'relative flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all text-xs font-medium',
+                'relative flex flex-col items-center justify-center min-h-[44px] min-w-[48px] py-1 px-3 rounded-xl transition-all text-xs font-medium',
                 isActive
                   ? 'text-blue-600 font-semibold'
                   : 'text-slate-500 hover:text-slate-900 active:scale-95'
@@ -76,7 +76,7 @@ export const MobileTabBar: React.FC<MobileTabBarProps> = ({
 
         <button
           onClick={onOpenSettings}
-          className="flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all text-xs font-medium text-slate-500 hover:text-slate-900 active:scale-95"
+          className="flex flex-col items-center justify-center min-h-[44px] min-w-[48px] py-1 px-3 rounded-xl transition-all text-xs font-medium text-slate-500 hover:text-slate-900 active:scale-95"
           title="Paramètres de l'entreprise"
         >
           <Settings className="w-5 h-5 stroke-[1.75px]" />

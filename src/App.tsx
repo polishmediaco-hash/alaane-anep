@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Invoice,
+  InvoiceItem,
   PublisherProfile,
   DEFAULT_PUBLISHER,
   DEFAULT_ANEP_CLIENT,
@@ -18,14 +19,16 @@ import {
   isSupabaseConnected,
 } from './lib/supabase';
 import {
-  SAMPLE_ANEP_BC,
+  SAMPLE_ANEP_BC_ITEMS,
   generateSampleBonDeCommandeCanvas,
 } from './lib/sampleData';
 
 import { Navbar } from './components/Navbar';
+import { StepProgressBar, WorkflowStep } from './components/StepProgressBar';
 import { DocumentStudio } from './components/DocumentStudio';
 import { InvoiceEditor } from './components/InvoiceEditor';
 import { InvoicePreview } from './components/InvoicePreview';
+import { DocumentPeekDrawer } from './components/DocumentPeekDrawer';
 import { HistoryModal } from './components/HistoryModal';
 import { SettingsModal } from './components/SettingsModal';
 import { MobileTabBar, MobileTab } from './components/MobileTabBar';
@@ -44,12 +47,17 @@ export function App() {
 
   // Invoices & Document State
   const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [bcImage, setBcImage] = useState<string | null>(null);
+  const [scannedBcDocuments, setScannedBcDocuments] = useState<
+    { id: string; label: string; url: string }[]
+  >([]);
+  const [activeBcIndex, setActiveBcIndex] = useState(0);
   const [temoinImage, setTemoinImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isPeekOpen, setIsPeekOpen] = useState(false);
 
-  // Navigation & Tabs
+  // Guided Linear Workflow Navigation
+  const [workflowStep, setWorkflowStep] = useState<WorkflowStep>('scan');
   // Mobile Tab: 'scan' | 'editor' | 'preview' | 'history'
   const [mobileTab, setMobileTab] = useState<MobileTab>('scan');
   // Desktop Right Tab: 'editor' | 'preview'
@@ -70,10 +78,24 @@ export function App() {
     const invNum = `FAC-${today.getFullYear()}-${String(numberSequence).padStart(4, '0')}`;
     const initialTtc = 0;
 
+    const initialItem: InvoiceItem = {
+      id: crypto.randomUUID(),
+      anep_bc_number: '',
+      anep_bc_date: formattedDate,
+      advertiser_name: "Direction des Travaux Publics (DTP) — Wilaya d'Alger",
+      ad_title: '',
+      publication_date: formattedDate,
+      edition_number: '',
+      ad_format: '4 colonnes x 15 cm (1/2 page)',
+      amount_ht: 0,
+    };
+
     return {
       id: crypto.randomUUID(),
       invoice_number: invNum,
       invoice_date: formattedDate,
+      advertiser_name: "Direction des Travaux Publics (DTP) — Wilaya d'Alger",
+      items: [initialItem],
       anep_bc_number: '',
       anep_bc_date: formattedDate,
       ad_title: '',
@@ -142,12 +164,72 @@ export function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentInvoice]);
 
+  // Recalculate totals helper
+  const updateInvoiceWithItem = (
+    inv: Invoice,
+    itemIndex: number,
+    itemData: Partial<InvoiceItem>
+  ): Invoice => {
+    const items = [...inv.items];
+    if (!items[itemIndex]) {
+      items[itemIndex] = {
+        id: crypto.randomUUID(),
+        anep_bc_number: '',
+        anep_bc_date: inv.invoice_date,
+        ad_title: '',
+        publication_date: inv.invoice_date,
+        edition_number: '',
+        ad_format: '4 colonnes x 15 cm (1/2 page)',
+        amount_ht: 0,
+      };
+    }
+
+    items[itemIndex] = {
+      ...items[itemIndex],
+      ...itemData,
+    };
+
+    const totalHt = Math.round(
+      items.reduce((sum, it) => sum + (Number(it.amount_ht) || 0), 0) * 100
+    ) / 100;
+    const tvaAmount = Math.round(totalHt * (inv.tva_rate / 100) * 100) / 100;
+    const amountTtc = Math.round((totalHt + tvaAmount) * 100) / 100;
+    const amountTtcWords = formatLegalClause(amountTtc);
+
+    const first = items[0];
+
+    return {
+      ...inv,
+      items,
+      amount_ht: totalHt,
+      tva_amount: tvaAmount,
+      amount_ttc: amountTtc,
+      amount_ttc_words: amountTtcWords,
+      anep_bc_number: first ? first.anep_bc_number : '',
+      anep_bc_date: first ? first.anep_bc_date : '',
+      ad_title: first ? first.ad_title : '',
+      ad_format: first ? first.ad_format : '',
+      publication_date: first ? first.publication_date : '',
+      edition_number: first ? first.edition_number : '',
+    };
+  };
+
   // Process uploaded document with Gemini 3.8 Flash
   const handleFileSelected = async (file: File) => {
     // 1. Instant local image preview
     const reader = new FileReader();
     reader.onload = () => {
-      setBcImage(reader.result as string);
+      const dataUrl = reader.result as string;
+      setScannedBcDocuments((prev) => {
+        const next = [...prev];
+        const docLabel = `BC #${activeBcIndex + 1}`;
+        next[activeBcIndex] = {
+          id: currentInvoice.items[activeBcIndex]?.id || crypto.randomUUID(),
+          label: docLabel,
+          url: dataUrl,
+        };
+        return next;
+      });
     };
     reader.readAsDataURL(file);
 
@@ -166,30 +248,42 @@ export function App() {
       // Multimodal Vision extraction
       const extracted = await analyzeBonDeCommande(file, apiKey);
 
-      setCurrentInvoice((prev) => ({
-        ...prev,
-        anep_bc_number: extracted.anep_bc_number,
-        anep_bc_date: extracted.anep_bc_date,
-        ad_title: extracted.ad_title,
-        publication_date: extracted.publication_date,
-        ad_format: extracted.ad_format,
-        amount_ht: extracted.amount_ht,
-        tva_amount: extracted.tva_amount,
-        amount_ttc: extracted.amount_ttc,
-        amount_ttc_words: extracted.amount_ttc_words,
-      }));
+      setCurrentInvoice((prev) => {
+        const updated = updateInvoiceWithItem(prev, activeBcIndex, {
+          anep_bc_number: extracted.anep_bc_number,
+          anep_bc_date: extracted.anep_bc_date,
+          advertiser_name: extracted.advertiser_name,
+          ad_title: extracted.ad_title,
+          publication_date: extracted.publication_date,
+          ad_format: extracted.ad_format,
+          amount_ht: extracted.amount_ht,
+        });
+
+        if (extracted.advertiser_name && (!prev.advertiser_name || prev.advertiser_name.includes('Alger'))) {
+          updated.advertiser_name = extracted.advertiser_name;
+        }
+
+        return updated;
+      });
 
       // Upload to Supabase Storage if online
       if (isSupabaseConnected()) {
         uploadScanDocument(file, 'anep_bc').then((url) => {
           if (url) {
-            setCurrentInvoice((prev) => ({ ...prev, bc_image_url: url }));
+            setCurrentInvoice((prev) => {
+              const items = [...prev.items];
+              if (items[activeBcIndex]) {
+                items[activeBcIndex].bc_image_url = url;
+              }
+              return { ...prev, items };
+            });
           }
         });
       }
 
-      showToast("Données extraites avec succès par Gemini 3.8 Flash !");
-      // On mobile, automatically switch to editor tab so the user can verify immediately
+      showToast(`Données extraites avec succès pour le BC #${activeBcIndex + 1} !`);
+      // Advance to editor step
+      setWorkflowStep('editor');
       setMobileTab('editor');
     } catch (err: any) {
       console.error('Gemini vision error:', err);
@@ -214,36 +308,88 @@ export function App() {
       });
     }
 
-    showToast("Témoin de parution joint avec succès au dossier de facturation.");
+    showToast("Témoin de parution joint avec succès au dossier.");
   };
 
-  // Load Built-in Realistic ANEP Sample Document
-  const handleLoadSample = () => {
-    const sampleCanvasData = generateSampleBonDeCommandeCanvas();
-    setBcImage(sampleCanvasData);
+  // Add another Bon de Commande action
+  const handleAddAnotherBc = () => {
+    const newIdx = currentInvoice.items.length;
+    const newItem: InvoiceItem = {
+      id: crypto.randomUUID(),
+      anep_bc_number: '',
+      anep_bc_date: currentInvoice.invoice_date,
+      advertiser_name: currentInvoice.advertiser_name || '',
+      ad_title: '',
+      publication_date: currentInvoice.invoice_date,
+      edition_number: '',
+      ad_format: '4 colonnes x 15 cm (1/2 page)',
+      amount_ht: 0,
+    };
 
     setCurrentInvoice((prev) => ({
       ...prev,
-      anep_bc_number: SAMPLE_ANEP_BC.anep_bc_number,
-      anep_bc_date: SAMPLE_ANEP_BC.anep_bc_date,
-      ad_title: SAMPLE_ANEP_BC.ad_title,
-      publication_date: SAMPLE_ANEP_BC.publication_date,
-      ad_format: SAMPLE_ANEP_BC.ad_format,
-      amount_ht: SAMPLE_ANEP_BC.amount_ht,
-      tva_amount: SAMPLE_ANEP_BC.tva_amount,
-      amount_ttc: SAMPLE_ANEP_BC.amount_ttc,
-      amount_ttc_words: SAMPLE_ANEP_BC.amount_ttc_words,
+      items: [...prev.items, newItem],
     }));
 
-    showToast("Exemple réel ANEP chargé : Bon de commande prêt pour facturation !");
+    setActiveBcIndex(newIdx);
+    setWorkflowStep('scan');
+    setMobileTab('scan');
+    showToast(`Ligne BC #${newIdx + 1} ajoutée. Numérisez le document correspondant.`);
+  };
+
+  // Load Built-in Realistic ANEP Multi-BC Sample Documents
+  const handleLoadSample = () => {
+    const canvas1 = generateSampleBonDeCommandeCanvas(1);
+    const canvas2 = generateSampleBonDeCommandeCanvas(2);
+
+    setScannedBcDocuments([
+      {
+        id: SAMPLE_ANEP_BC_ITEMS[0].id,
+        label: 'BC #1 (Appel d’Offres)',
+        url: canvas1,
+      },
+      {
+        id: SAMPLE_ANEP_BC_ITEMS[1].id,
+        label: 'BC #2 (Prorogation)',
+        url: canvas2,
+      },
+    ]);
+    setActiveBcIndex(0);
+
+    const items = [...SAMPLE_ANEP_BC_ITEMS];
+    const totalHt = items.reduce((sum, it) => sum + it.amount_ht, 0); // 240,000 DA
+    const tvaAmount = Math.round(totalHt * 0.19 * 100) / 100; // 45,600 DA
+    const totalTtc = totalHt + tvaAmount; // 285,600 DA
+    const words = formatLegalClause(totalTtc);
+
+    setCurrentInvoice((prev) => ({
+      ...prev,
+      advertiser_name: "Direction des Travaux Publics (DTP) — Wilaya d'Alger",
+      items,
+      amount_ht: totalHt,
+      tva_rate: 19.0,
+      tva_amount: tvaAmount,
+      amount_ttc: totalTtc,
+      amount_ttc_words: words,
+      anep_bc_number: items[0].anep_bc_number,
+      anep_bc_date: items[0].anep_bc_date,
+      ad_title: items[0].ad_title,
+      ad_format: items[0].ad_format,
+      publication_date: items[0].publication_date,
+      edition_number: items[0].edition_number,
+    }));
+
+    showToast("Exemple multi-BC ANEP chargé : 2 Bons de Commande prêts pour facturation !");
   };
 
   // New Invoice action
   const handleNewInvoice = () => {
     const nextSeq = invoices.length + 1;
     setCurrentInvoice(generateNewInvoice(nextSeq));
-    setBcImage(null);
+    setScannedBcDocuments([]);
+    setActiveBcIndex(0);
     setTemoinImage(null);
+    setWorkflowStep('scan');
     setDesktopRightTab('editor');
     setMobileTab('scan');
     showToast("Nouvelle facture prête.");
@@ -257,7 +403,7 @@ export function App() {
       setCurrentInvoice(saved);
       const updatedList = await fetchInvoices();
       setInvoices(updatedList);
-      showToast(`Facture ${saved.invoice_number} enregistrée avec succès.`);
+      showToast(`Facture ${saved.invoice_number} (${saved.items.length} BC) enregistrée.`);
     } catch (e: any) {
       showToast(`Erreur d'enregistrement: ${e?.message}`);
     } finally {
@@ -288,6 +434,7 @@ export function App() {
     };
     setCurrentInvoice(duplicated);
     setIsHistoryOpen(false);
+    setWorkflowStep('editor');
     setDesktopRightTab('editor');
     setMobileTab('editor');
     showToast(`Facture dupliquée sous ${nextNum}.`);
@@ -295,11 +442,23 @@ export function App() {
 
   // Native Print
   const handlePrint = () => {
+    setWorkflowStep('preview');
     setDesktopRightTab('preview');
     setMobileTab('preview');
     setTimeout(() => {
       window.print();
     }, 150);
+  };
+
+  // Step Progress Bar Click Handler
+  const handleStepClick = (step: WorkflowStep) => {
+    setWorkflowStep(step);
+    setMobileTab(step);
+    if (step === 'preview') {
+      setDesktopRightTab('preview');
+    } else {
+      setDesktopRightTab('editor');
+    }
   };
 
   // Handle Mobile Tab Switch
@@ -308,6 +467,7 @@ export function App() {
       setIsHistoryOpen(true);
     } else {
       setMobileTab(tab);
+      setWorkflowStep(tab);
     }
   };
 
@@ -324,53 +484,75 @@ export function App() {
         onOpenSettings={() => setIsSettingsOpen(true)}
       />
 
+      {/* Guided 3-Step Workflow Progress Bar */}
+      <StepProgressBar
+        currentStep={workflowStep}
+        onStepClick={handleStepClick}
+        itemCount={currentInvoice.items.length}
+        invoiceNumber={currentInvoice.invoice_number}
+      />
+
       {/* Responsive Workbench: Split Screen on Desktop (>= 1024px), Single Tab View on Mobile (< 1024px) */}
       <main className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
         {/* Desktop View (>= 1024px) */}
         <div className="hidden lg:flex flex-1 w-full h-full overflow-hidden">
-          {/* Left Studio: Source Scanned Document (45%) */}
-          <div className="w-[45%] h-full flex flex-col document-studio border-r border-slate-200">
+          {/* Left Studio: Source Scanned Document Studio (44%) */}
+          <div className="w-[44%] h-full flex flex-col document-studio border-r border-slate-200">
             <DocumentStudio
-              bcImage={bcImage}
+              bcImage={scannedBcDocuments[activeBcIndex]?.url || null}
               temoinImage={temoinImage}
+              bcDocuments={scannedBcDocuments}
+              activeBcIndex={activeBcIndex}
+              onSelectBcIndex={(idx) => setActiveBcIndex(idx)}
+              onAddAnotherBc={handleAddAnotherBc}
               isAnalyzing={isAnalyzing}
               onFileSelected={handleFileSelected}
               onLoadSample={handleLoadSample}
               onTemoinSelected={handleTemoinSelected}
+              onContinueToEditor={() => {
+                setWorkflowStep('editor');
+                setDesktopRightTab('editor');
+              }}
             />
           </div>
 
-          {/* Right Studio: Verification Form & Live Printable A4 Invoice (55%) */}
-          <div className="w-[55%] h-full flex flex-col bg-slate-50 editor-panel">
+          {/* Right Studio: Verification Form & Live Printable A4 Invoice (56%) */}
+          <div className="w-[56%] h-full flex flex-col bg-slate-50 editor-panel">
             {/* Desktop Switcher: Formulaire vs Aperçu A4 */}
             <div className="h-11 bg-white border-b border-slate-200 px-4 flex items-center justify-between no-print shrink-0">
               <div className="flex items-center gap-1.5">
                 <Button
                   variant={desktopRightTab === 'editor' ? 'default' : 'ghost'}
                   size="sm"
-                  onClick={() => setDesktopRightTab('editor')}
+                  onClick={() => {
+                    setDesktopRightTab('editor');
+                    setWorkflowStep('editor');
+                  }}
                   className="h-8 text-xs font-medium"
                 >
-                  <Edit3 className="w-3.5 h-3.5" />
-                  <span>Formulaire de Facturation</span>
+                  <Edit3 className="w-3.5 h-3.5 mr-1" />
+                  <span>Vérification & Lignes ({currentInvoice.items.length} BC)</span>
                 </Button>
 
                 <Button
                   variant={desktopRightTab === 'preview' ? 'primary' : 'ghost'}
                   size="sm"
-                  onClick={() => setDesktopRightTab('preview')}
+                  onClick={() => {
+                    setDesktopRightTab('preview');
+                    setWorkflowStep('preview');
+                  }}
                   className="h-8 text-xs font-medium"
                 >
-                  <Eye className="w-3.5 h-3.5" />
+                  <Eye className="w-3.5 h-3.5 mr-1" />
                   <span>Aperçu Impression A4</span>
                 </Button>
               </div>
 
-              {/* Quick Invoice Number Badge */}
+              {/* Quick Invoice Number & Total Badge */}
               <div className="text-xs text-slate-500 flex items-center gap-2">
-                <span>Facture :</span>
-                <Badge variant="primary" className="font-mono text-xs">
-                  {currentInvoice.invoice_number}
+                <span>Total TTC :</span>
+                <Badge variant="primary" className="font-mono text-xs font-bold">
+                  {currentInvoice.amount_ttc.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} DA
                 </Badge>
               </div>
             </div>
@@ -384,6 +566,12 @@ export function App() {
                   onSave={handleSaveInvoice}
                   onPrint={handlePrint}
                   isSaving={isSaving}
+                  onOpenPeek={() => setIsPeekOpen(true)}
+                  hasScannedDocuments={scannedBcDocuments.length > 0}
+                  onContinueToPreview={() => {
+                    setWorkflowStep('preview');
+                    setDesktopRightTab('preview');
+                  }}
                 />
               ) : (
                 <InvoicePreview
@@ -401,12 +589,20 @@ export function App() {
           {mobileTab === 'scan' && (
             <div className="flex-1 h-full overflow-hidden pb-16">
               <DocumentStudio
-                bcImage={bcImage}
+                bcImage={scannedBcDocuments[activeBcIndex]?.url || null}
                 temoinImage={temoinImage}
+                bcDocuments={scannedBcDocuments}
+                activeBcIndex={activeBcIndex}
+                onSelectBcIndex={(idx) => setActiveBcIndex(idx)}
+                onAddAnotherBc={handleAddAnotherBc}
                 isAnalyzing={isAnalyzing}
                 onFileSelected={handleFileSelected}
                 onLoadSample={handleLoadSample}
                 onTemoinSelected={handleTemoinSelected}
+                onContinueToEditor={() => {
+                  setWorkflowStep('editor');
+                  setMobileTab('editor');
+                }}
               />
             </div>
           )}
@@ -419,6 +615,12 @@ export function App() {
                 onSave={handleSaveInvoice}
                 onPrint={handlePrint}
                 isSaving={isSaving}
+                onOpenPeek={() => setIsPeekOpen(true)}
+                hasScannedDocuments={scannedBcDocuments.length > 0}
+                onContinueToPreview={() => {
+                  setWorkflowStep('preview');
+                  setMobileTab('preview');
+                }}
               />
             </div>
           )}
@@ -441,6 +643,14 @@ export function App() {
         onTabChange={handleMobileTabChange}
         onOpenSettings={() => setIsSettingsOpen(true)}
         hasUnsavedChanges={currentInvoice.amount_ht > 0}
+      />
+
+      {/* Mobile Floating Peek Drawer for Live Document Verification */}
+      <DocumentPeekDrawer
+        isOpen={isPeekOpen}
+        onClose={() => setIsPeekOpen(false)}
+        bcImages={scannedBcDocuments}
+        temoinImage={temoinImage}
       />
 
       {/* Printable Invoice Anchor for @media print */}
@@ -467,6 +677,7 @@ export function App() {
         invoices={invoices}
         onSelectInvoice={(inv) => {
           setCurrentInvoice(inv);
+          setWorkflowStep('editor');
           setDesktopRightTab('editor');
           setMobileTab('editor');
         }}

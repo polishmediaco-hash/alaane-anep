@@ -8,15 +8,16 @@ Carefully read both printed and handwritten text, stamps, and signatures.
 Extract the following information:
 1. anep_bc_number: The exact order number (Numéro du Bon de Commande or Matricule ANEP N°...).
 2. anep_bc_date: The date on the Bon de Commande (formatted as DD/MM/YYYY if discernible).
-3. ad_title: The title or subject of the advertisement/tender (Objet / Titre de l'annonce, e.g. Avis d'Appel d'Offres, Mise en demeure, etc.).
-4. publication_date: The requested date of publication for the ad (Date de parution).
-5. ad_format: The size, module, or column dimension (e.g. '1/4 page', '1/2 page', 'Pleine page', or '4 col x 15 cm').
-6. amount_ht: The pre-tax amount (Montant HT) in Algerian Dinars (numbers only).
-7. tva_amount: The 19% TVA amount (Montant TVA = amount_ht * 0.19). Calculate if missing.
-8. amount_ttc: The total amount including tax (Montant TTC = amount_ht + tva_amount).
-9. amount_ttc_words: The amount_ttc spelled out fully in French letters with 'Dinars Algériens'.
+3. advertiser_name: The client institution or advertiser (Organisme Client / Pour le compte de : e.g. Direction des Travaux Publics, Ministère, etc.).
+4. ad_title: The title or subject of the advertisement/tender (Objet / Titre de l'annonce, e.g. Avis d'Appel d'Offres, Mise en demeure, etc.).
+5. publication_date: The requested date of publication for the ad (Date de parution).
+6. ad_format: The size, module, or column dimension (e.g. '1/4 page', '1/2 page', 'Pleine page', or '4 col x 15 cm').
+7. amount_ht: The pre-tax amount (Montant HT) in Algerian Dinars (numbers only).
+8. tva_amount: The 19% TVA amount (Montant TVA = amount_ht * 0.19). Calculate if missing.
+9. amount_ttc: The total amount including tax (Montant TTC = amount_ht + tva_amount).
+10. amount_ttc_words: The amount_ttc spelled out fully in French letters with 'Dinars Algériens'.
 
-Strictly return valid JSON adhering to the specified schema without Markdown markdown formatting.`;
+Strictly return valid JSON adhering to the specified schema without Markdown formatting.`;
 
 const JSON_SCHEMA = {
   type: 'object',
@@ -28,6 +29,10 @@ const JSON_SCHEMA = {
     anep_bc_date: {
       type: 'string',
       description: 'The date on the Bon de Commande.',
+    },
+    advertiser_name: {
+      type: 'string',
+      description: "The ordering advertiser institution (Organisme client / Pour le compte de).",
     },
     ad_title: {
       type: 'string',
@@ -184,6 +189,7 @@ export async function analyzeBonDeCommande(
   return {
     anep_bc_number: parsed.anep_bc_number || 'ANEP N° non spécifié',
     anep_bc_date: parsed.anep_bc_date || new Date().toLocaleDateString('fr-FR'),
+    advertiser_name: parsed.advertiser_name || "Direction des Travaux Publics (DTP) — Wilaya d'Alger",
     ad_title: parsed.ad_title || "Avis d'appel d'offres / Annonce légale",
     publication_date: parsed.publication_date || parsed.anep_bc_date || new Date().toLocaleDateString('fr-FR'),
     ad_format: parsed.ad_format || '1/4 page',

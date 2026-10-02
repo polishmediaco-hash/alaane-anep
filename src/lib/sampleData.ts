@@ -1,9 +1,10 @@
-import { AnepBonDeCommandeData } from '../types/invoice';
+import { AnepBonDeCommandeData, InvoiceItem } from '../types/invoice';
 import { amountToFrenchWordsDZD } from './numberToWordsFr';
 
 export const SAMPLE_ANEP_BC: AnepBonDeCommandeData = {
   anep_bc_number: '2416008452 / DEP-REGIE-CENTRE',
   anep_bc_date: '02/10/2026',
+  advertiser_name: "Direction des Travaux Publics (DTP) — Wilaya d'Alger",
   ad_title: "Avis d'Appel d'Offres National Ouvert N° 08/DTP/2026 — Travaux de Réhabilitation du Réseau Routier",
   publication_date: '05/10/2026',
   ad_format: '4 colonnes x 18 cm (72 cm/col) — 1/2 Page Recto',
@@ -13,11 +14,36 @@ export const SAMPLE_ANEP_BC: AnepBonDeCommandeData = {
   amount_ttc_words: amountToFrenchWordsDZD(220150.0),
 };
 
+export const SAMPLE_ANEP_BC_ITEMS: InvoiceItem[] = [
+  {
+    id: 'bc-item-01',
+    anep_bc_number: '2416008452 / DEP-REGIE-CENTRE',
+    anep_bc_date: '02/10/2026',
+    advertiser_name: "Direction des Travaux Publics (DTP) — Wilaya d'Alger",
+    ad_title: "Avis d'Appel d'Offres National Ouvert N° 08/DTP/2026 — Travaux de Réhabilitation du Réseau Routier (Lot 02)",
+    publication_date: '05/10/2026',
+    edition_number: 'N° 1845',
+    ad_format: '4 col x 18 cm (72 cm/col) — 1/2 Page Recto',
+    amount_ht: 185000.0,
+  },
+  {
+    id: 'bc-item-02',
+    anep_bc_number: '2416008510 / DEP-REGIE-CENTRE',
+    anep_bc_date: '03/10/2026',
+    advertiser_name: "Direction des Travaux Publics (DTP) — Wilaya d'Alger",
+    ad_title: "Avis de Prorogation de Délai N° 01/2026 — Appel d'Offres N° 08/DTP/2026",
+    publication_date: '08/10/2026',
+    edition_number: 'N° 1848',
+    ad_format: '2 col x 12 cm (24 cm/col) — 1/4 Page',
+    amount_ht: 55000.0,
+  },
+];
+
 /**
  * Creates a synthetic realistic ANEP Bon de Commande image on an in-memory canvas
  * and returns it as a data URL (PNG) so the user can immediately test pan/zoom and AI analysis.
  */
-export function generateSampleBonDeCommandeCanvas(): string {
+export function generateSampleBonDeCommandeCanvas(orderIndex: 1 | 2 = 1): string {
   const canvas = document.createElement('canvas');
   canvas.width = 1200;
   canvas.height = 1600;
@@ -73,15 +99,29 @@ export function generateSampleBonDeCommandeCanvas(): string {
   ctx.textAlign = 'center';
   ctx.fillText("BON DE COMMANDE / ORDRE D'INSERTION PRESSE", canvas.width / 2, 355);
 
+  const isSecond = orderIndex === 2;
+  const bcNum = isSecond ? 'ANEP-2416008510 / DEP-REGIE-CENTRE' : 'ANEP-2416008452 / DEP-REGIE-CENTRE';
+  const bcDate = isSecond ? '03 Octobre 2026' : '02 Octobre 2026';
+  const parutionDate = isSecond ? 'Édition du 08 Octobre 2026' : 'Édition du 05 Octobre 2026';
+  const adTitle = isSecond ? 'Avis de Prorogation de Délai N° 01/2026' : "Avis d'Appel d'Offres National Ouvert N° 08/DTP/2026";
+  const adSub = isSecond ? "Objet : Appel d'Offres N° 08/DTP/2026 — Prolongation dépôt offres" : 'Objet : Travaux de réhabilitation et modernisation du réseau routier (Lot 02)';
+  const adFmt = isSecond ? '2 colonnes x 12 cm' : '4 colonnes x 18 cm';
+  const adTotalCol = isSecond ? '(Total: 24 cm/col)' : '(Total: 72 cm/col)';
+  const adModule = isSecond ? 'Module : 1/4 Page' : 'Module : 1/2 Page Recto';
+  const amountHtStr = isSecond ? '55 000,00 DA' : '185 000,00 DA';
+  const tvaStr = isSecond ? '10 450,00 DA' : '35 150,00 DA';
+  const ttcStr = isSecond ? '65 450,00 DA' : '220 150,00 DA';
+  const lettersStr = isSecond ? 'Soixante-cinq mille quatre cent cinquante Dinars Algériens TTC' : 'Deux cent vingt mille cent cinquante Dinars Algériens TTC';
+
   // Order Metadata Block
   ctx.textAlign = 'left';
   ctx.font = 'bold 20px monospace';
   ctx.fillStyle = '#dc2626';
-  ctx.fillText('N° COMMANDE : ANEP-2416008452 / DEP-REGIE-CENTRE', 90, 430);
+  ctx.fillText('N° COMMANDE : ' + bcNum, 90, 430);
 
   ctx.font = '18px sans-serif';
   ctx.fillStyle = '#0f172a';
-  ctx.fillText('Date d’émission : 02 Octobre 2026', 700, 430);
+  ctx.fillText('Date d’émission : ' + bcDate, 700, 430);
 
   // Beneficiary Journal
   ctx.strokeStyle = '#cbd5e1';
@@ -92,7 +132,7 @@ export function generateSampleBonDeCommandeCanvas(): string {
   ctx.fillStyle = '#334155';
   ctx.font = '16px sans-serif';
   ctx.fillText('Langue de publication : Français et Arabe', 100, 525);
-  ctx.fillText('Date(s) de parution requise(s) : Édition du 05 Octobre 2026', 100, 550);
+  ctx.fillText('Date(s) de parution requise(s) : ' + parutionDate, 100, 550);
 
   // Advertiser / Donneur d'ordre
   ctx.fillStyle = '#0f172a';
@@ -115,21 +155,21 @@ export function generateSampleBonDeCommandeCanvas(): string {
   // Table Content
   ctx.strokeRect(80, tableY + 45, canvas.width - 160, 220);
   ctx.font = '16px sans-serif';
-  ctx.fillText("Avis d'Appel d'Offres National Ouvert N° 08/DTP/2026", 95, tableY + 80);
+  ctx.fillText(adTitle, 95, tableY + 80);
   ctx.font = 'italic 15px sans-serif';
   ctx.fillStyle = '#475569';
-  ctx.fillText('Objet : Travaux de réhabilitation et modernisation du réseau routier (Lot 02)', 95, tableY + 110);
+  ctx.fillText(adSub, 95, tableY + 110);
   ctx.fillText('Notice de mise en conformité réglementaire (BOMOP / Presse Quotidienne)', 95, tableY + 135);
 
   ctx.fillStyle = '#0f172a';
   ctx.font = 'bold 16px sans-serif';
-  ctx.fillText('4 colonnes x 18 cm', 680, tableY + 80);
+  ctx.fillText(adFmt, 680, tableY + 80);
   ctx.font = '14px sans-serif';
-  ctx.fillText('(Total: 72 cm/col)', 680, tableY + 110);
-  ctx.fillText('Module : 1/2 Page Recto', 680, tableY + 135);
+  ctx.fillText(adTotalCol, 680, tableY + 110);
+  ctx.fillText(adModule, 680, tableY + 135);
 
   ctx.font = 'bold 20px monospace';
-  ctx.fillText('185 000,00 DA', 950, tableY + 80);
+  ctx.fillText(amountHtStr, 950, tableY + 80);
 
   // Totals Box
   const totalsY = 950;
@@ -148,11 +188,11 @@ export function generateSampleBonDeCommandeCanvas(): string {
   ctx.font = 'bold 18px monospace';
   ctx.fillStyle = '#0f172a';
   ctx.textAlign = 'right';
-  ctx.fillText('185 000,00 DA', 1100, totalsY + 40);
-  ctx.fillText('35 150,00 DA', 1100, totalsY + 80);
+  ctx.fillText(amountHtStr, 1100, totalsY + 40);
+  ctx.fillText(tvaStr, 1100, totalsY + 80);
   ctx.font = 'bold 22px monospace';
   ctx.fillStyle = '#047857';
-  ctx.fillText('220 150,00 DA', 1100, totalsY + 135);
+  ctx.fillText(ttcStr, 1100, totalsY + 135);
 
   // Written Amount
   ctx.textAlign = 'left';
@@ -161,7 +201,7 @@ export function generateSampleBonDeCommandeCanvas(): string {
   ctx.fillText('Arrêté le présent bon de commande à la somme de :', 80, 1180);
   ctx.font = 'bold 16px sans-serif';
   ctx.fillStyle = '#0f172a';
-  ctx.fillText('Deux cent vingt mille cent cinquante Dinars Algériens TTC', 80, 1210);
+  ctx.fillText(lettersStr, 80, 1210);
 
   // Wet Stamp & Signature Simulator (Circular Purple/Blue Seal)
   ctx.save();

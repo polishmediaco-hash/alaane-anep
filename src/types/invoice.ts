@@ -1,6 +1,7 @@
 export interface AnepBonDeCommandeData {
   anep_bc_number: string;
   anep_bc_date: string;
+  advertiser_name?: string;
   ad_title: string;
   publication_date: string;
   ad_format: string;
@@ -16,23 +17,28 @@ export interface InvoiceItem {
   id: string;
   anep_bc_number: string;
   anep_bc_date: string;
+  advertiser_name?: string;
   ad_title: string;
   publication_date: string;
   edition_number: string;
   ad_format: string;
   amount_ht: number;
+  bc_image_url?: string;
+  temoin_image_url?: string;
 }
 
 export interface Invoice {
   id: string;
   invoice_number: string;
   invoice_date: string;
-  anep_bc_number: string;
-  anep_bc_date: string;
-  ad_title: string;
-  ad_format: string;
-  publication_date: string;
-  edition_number: string;
+  advertiser_name?: string;
+  items: InvoiceItem[];
+  anep_bc_number?: string;
+  anep_bc_date?: string;
+  ad_title?: string;
+  ad_format?: string;
+  publication_date?: string;
+  edition_number?: string;
   amount_ht: number;
   tva_rate: number;
   tva_amount: number;

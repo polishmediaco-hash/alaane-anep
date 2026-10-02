@@ -1,0 +1,24 @@
+{
+  "name": "Journal Alaane — Facturation ANEP",
+  "short_name": "Alaane ANEP",
+  "description": "Application commerciale de facturation des ordres d'insertion ANEP pour le Quotidien Alaane",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F8FAFC",
+  "theme_color": "#2563EB",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/assets/alaane-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/alaane-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

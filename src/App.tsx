@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Invoice,
   PublisherProfile,
@@ -28,8 +28,11 @@ import { InvoiceEditor } from './components/InvoiceEditor';
 import { InvoicePreview } from './components/InvoicePreview';
 import { HistoryModal } from './components/HistoryModal';
 import { SettingsModal } from './components/SettingsModal';
+import { MobileTabBar, MobileTab } from './components/MobileTabBar';
+import { Button } from './components/ui/button';
+import { Badge } from './components/ui/badge';
 
-import { Eye, Edit3, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Eye, Edit3, CheckCircle2 } from 'lucide-react';
 
 export function App() {
   // Cloud & Config State
@@ -46,13 +49,17 @@ export function App() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // UI Tabs & Modals
-  const [rightTab, setRightTab] = useState<'editor' | 'preview'>('editor');
+  // Navigation & Tabs
+  // Mobile Tab: 'scan' | 'editor' | 'preview' | 'history'
+  const [mobileTab, setMobileTab] = useState<MobileTab>('scan');
+  // Desktop Right Tab: 'editor' | 'preview'
+  const [desktopRightTab, setDesktopRightTab] = useState<'editor' | 'preview'>('editor');
+
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Active Working Invoice
+  // Active Working Invoice Generator
   const generateNewInvoice = (numberSequence = 1): Invoice => {
     const today = new Date();
     const formattedDate = today.toLocaleDateString('fr-FR', {
@@ -149,7 +156,7 @@ export function App() {
     const apiKey = config.geminiApiKey?.trim();
 
     if (!apiKey) {
-      showToast("Veuillez renseigner votre clé API Gemini dans les Paramètres pour activer l'analyse IA.");
+      showToast("Veuillez renseigner votre clé API Gemini dans les Réglages pour activer l'extraction vision.");
       setIsSettingsOpen(true);
       return;
     }
@@ -181,7 +188,9 @@ export function App() {
         });
       }
 
-      showToast("Données du Bon de Commande extraites avec succès par Gemini 3.8 Flash !");
+      showToast("Données extraites avec succès par Gemini 3.8 Flash !");
+      // On mobile, automatically switch to editor tab so the user can verify immediately
+      setMobileTab('editor');
     } catch (err: any) {
       console.error('Gemini vision error:', err);
       showToast(`Erreur d'analyse : ${err?.message || 'Échec de la lecture'}`);
@@ -235,7 +244,8 @@ export function App() {
     setCurrentInvoice(generateNewInvoice(nextSeq));
     setBcImage(null);
     setTemoinImage(null);
-    setRightTab('editor');
+    setDesktopRightTab('editor');
+    setMobileTab('scan');
     showToast("Nouvelle facture prête.");
   };
 
@@ -278,21 +288,32 @@ export function App() {
     };
     setCurrentInvoice(duplicated);
     setIsHistoryOpen(false);
-    setRightTab('editor');
+    setDesktopRightTab('editor');
+    setMobileTab('editor');
     showToast(`Facture dupliquée sous ${nextNum}.`);
   };
 
   // Native Print
   const handlePrint = () => {
-    setRightTab('preview');
+    setDesktopRightTab('preview');
+    setMobileTab('preview');
     setTimeout(() => {
       window.print();
     }, 150);
   };
 
+  // Handle Mobile Tab Switch
+  const handleMobileTabChange = (tab: MobileTab) => {
+    if (tab === 'history') {
+      setIsHistoryOpen(true);
+    } else {
+      setMobileTab(tab);
+    }
+  };
+
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-950 text-slate-100">
-      {/* Top Application Bar */}
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-50 text-slate-900 select-none">
+      {/* Top Executive Navigation Bar */}
       <Navbar
         hasGeminiKey={hasGeminiKey}
         isSupabaseOnline={isSupabaseOnline}
@@ -303,62 +324,95 @@ export function App() {
         onOpenSettings={() => setIsSettingsOpen(true)}
       />
 
-      {/* Main Split-Screen Workbench Studio */}
-      <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
-        {/* Left Studio: Source Scanned Document (45% on desktop) */}
-        <div className="w-full md:w-[45%] h-1/2 md:h-full flex flex-col document-studio border-b md:border-b-0 border-slate-800">
-          <DocumentStudio
-            bcImage={bcImage}
-            temoinImage={temoinImage}
-            isAnalyzing={isAnalyzing}
-            onFileSelected={handleFileSelected}
-            onLoadSample={handleLoadSample}
-            onTemoinSelected={handleTemoinSelected}
-          />
-        </div>
-
-        {/* Right Studio: Verification Form & Live Printable A4 Invoice (55% on desktop) */}
-        <div className="w-full md:w-[55%] h-1/2 md:h-full flex flex-col bg-slate-900 editor-panel">
-          {/* Workspace Tabs: Formulaire vs Aperçu A4 */}
-          <div className="h-11 bg-slate-950 border-b border-slate-800 px-4 flex items-center justify-between no-print shrink-0">
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setRightTab('editor')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  rightTab === 'editor'
-                    ? 'bg-slate-800 text-white border border-slate-700 shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Edit3 className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Formulaire de Facturation</span>
-              </button>
-
-              <button
-                onClick={() => setRightTab('preview')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  rightTab === 'preview'
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Eye className="w-3.5 h-3.5" />
-                <span>Aperçu Impression A4</span>
-              </button>
-            </div>
-
-            {/* Quick Invoice Number Badge */}
-            <div className="text-[11px] font-mono text-slate-400 flex items-center gap-2">
-              <span>Facture active :</span>
-              <span className="font-bold text-emerald-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
-                {currentInvoice.invoice_number}
-              </span>
-            </div>
+      {/* Responsive Workbench: Split Screen on Desktop (>= 1024px), Single Tab View on Mobile (< 1024px) */}
+      <main className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+        {/* Desktop View (>= 1024px) */}
+        <div className="hidden lg:flex flex-1 w-full h-full overflow-hidden">
+          {/* Left Studio: Source Scanned Document (45%) */}
+          <div className="w-[45%] h-full flex flex-col document-studio border-r border-slate-200">
+            <DocumentStudio
+              bcImage={bcImage}
+              temoinImage={temoinImage}
+              isAnalyzing={isAnalyzing}
+              onFileSelected={handleFileSelected}
+              onLoadSample={handleLoadSample}
+              onTemoinSelected={handleTemoinSelected}
+            />
           </div>
 
-          {/* Active Tab Content */}
-          <div className="flex-1 overflow-hidden">
-            {rightTab === 'editor' ? (
+          {/* Right Studio: Verification Form & Live Printable A4 Invoice (55%) */}
+          <div className="w-[55%] h-full flex flex-col bg-slate-50 editor-panel">
+            {/* Desktop Switcher: Formulaire vs Aperçu A4 */}
+            <div className="h-11 bg-white border-b border-slate-200 px-4 flex items-center justify-between no-print shrink-0">
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant={desktopRightTab === 'editor' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setDesktopRightTab('editor')}
+                  className="h-8 text-xs font-medium"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>Formulaire de Facturation</span>
+                </Button>
+
+                <Button
+                  variant={desktopRightTab === 'preview' ? 'primary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setDesktopRightTab('preview')}
+                  className="h-8 text-xs font-medium"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>Aperçu Impression A4</span>
+                </Button>
+              </div>
+
+              {/* Quick Invoice Number Badge */}
+              <div className="text-xs text-slate-500 flex items-center gap-2">
+                <span>Facture :</span>
+                <Badge variant="primary" className="font-mono text-xs">
+                  {currentInvoice.invoice_number}
+                </Badge>
+              </div>
+            </div>
+
+            {/* Desktop Active Content */}
+            <div className="flex-1 overflow-hidden">
+              {desktopRightTab === 'editor' ? (
+                <InvoiceEditor
+                  invoice={currentInvoice}
+                  onChange={setCurrentInvoice}
+                  onSave={handleSaveInvoice}
+                  onPrint={handlePrint}
+                  isSaving={isSaving}
+                />
+              ) : (
+                <InvoicePreview
+                  invoice={currentInvoice}
+                  publisher={publisher}
+                  onPrint={handlePrint}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile View (< 1024px): Fullscreen single tab with bottom navigation bar */}
+        <div className="flex lg:hidden flex-1 w-full h-full overflow-hidden flex-col">
+          {mobileTab === 'scan' && (
+            <div className="flex-1 h-full overflow-hidden pb-16">
+              <DocumentStudio
+                bcImage={bcImage}
+                temoinImage={temoinImage}
+                isAnalyzing={isAnalyzing}
+                onFileSelected={handleFileSelected}
+                onLoadSample={handleLoadSample}
+                onTemoinSelected={handleTemoinSelected}
+              />
+            </div>
+          )}
+
+          {mobileTab === 'editor' && (
+            <div className="flex-1 h-full overflow-hidden pb-16">
               <InvoiceEditor
                 invoice={currentInvoice}
                 onChange={setCurrentInvoice}
@@ -366,16 +420,28 @@ export function App() {
                 onPrint={handlePrint}
                 isSaving={isSaving}
               />
-            ) : (
+            </div>
+          )}
+
+          {mobileTab === 'preview' && (
+            <div className="flex-1 h-full overflow-hidden pb-16">
               <InvoicePreview
                 invoice={currentInvoice}
                 publisher={publisher}
                 onPrint={handlePrint}
               />
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </main>
+
+      {/* iPhone Mobile Bottom Navigation Bar (Hidden on desktop & print) */}
+      <MobileTabBar
+        activeTab={mobileTab}
+        onTabChange={handleMobileTabChange}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        hasUnsavedChanges={currentInvoice.amount_ht > 0}
+      />
 
       {/* Printable Invoice Anchor for @media print */}
       <div className="hidden print:block">
@@ -388,7 +454,7 @@ export function App() {
 
       {/* Floating Notification Toast */}
       {toastMessage && (
-        <div className="fixed bottom-5 right-5 z-50 p-3 px-4 rounded-xl bg-slate-900/95 border border-emerald-500/40 text-emerald-300 text-xs shadow-2xl backdrop-blur-md flex items-center gap-2.5 animate-in slide-in-from-bottom-3 duration-200">
+        <div className="fixed bottom-20 lg:bottom-5 right-4 lg:right-5 z-50 p-3 px-4 rounded-xl bg-slate-900 text-white text-xs shadow-xl backdrop-blur-md flex items-center gap-2.5 animate-in slide-in-from-bottom-2 duration-200">
           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{toastMessage}</span>
         </div>
@@ -401,7 +467,8 @@ export function App() {
         invoices={invoices}
         onSelectInvoice={(inv) => {
           setCurrentInvoice(inv);
-          setRightTab('editor');
+          setDesktopRightTab('editor');
+          setMobileTab('editor');
         }}
         onDeleteInvoice={handleDeleteInvoice}
         onDuplicateInvoice={handleDuplicateInvoice}

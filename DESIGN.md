@@ -1,56 +1,33 @@
-# Design System & Visual Authority: Alaane-ANEP Invoicing
+# Design System & Visual Authority: Alaane-ANEP (Mobile-First Swiss Minimalist)
 
-## 1. Design Direction: Algerian Press & Fiscal Authority
-- **Surface Mode:** **Operate** (Dense, scannable billing cockpit prioritizing speed, legal precision, and effortless document comparison).
-- **Core Aesthetic:** High-trust editorial ledger. Blends classic print journalism authority with modern financial workstation ergonomics.
-- **Anti-Slop Guarantees:**
-  - Zero AI purple/indigo gradients or generic dark mesh backgrounds.
-  - Zero decorative 3-column card soup.
-  - Pure physical realism: The A4 invoice preview looks and behaves identically on screen as it does when emerging from a color laser printer.
-
----
-
-## 2. Color Palette & Semantics
-
-| Token | Hex / Class | Semantic Usage |
-| :--- | :--- | :--- |
-| **Canvas Background** | `#0b0f19` / `bg-slate-950` | Workstation shell; dark, immersive frame that lets documents and white A4 paper pop. |
-| **Panel Surface** | `#111827` / `bg-slate-900` | Toolbars, settings drawers, and control panels. |
-| **Paper Canvas** | `#ffffff` / `bg-white` | Physical A4 invoice rendering with genuine print styling. |
-| **Primary Accent** | `#047857` / `emerald-700` | Press Emerald: primary actions ("Imprimer", "Enregistrer"), verified status, and key totals. |
-| **Secondary Accent** | `#0284c7` / `sky-600` | AI Processing pulses and active focus rings. |
-| **Borders & Dividers**| `#334155` / `border-slate-700` (UI) / `#cbd5e1` (A4 Paper) | Precision hairlines that ground tabular invoice rows and control clusters. |
-| **Text Primary** | `#f8fafc` / `text-slate-100` (UI) / `#0f172a` (A4 Paper) | High-contrast readability in both dark workbench and white paper contexts. |
+## 1. Visual Direction: Executive Swiss Minimalism & iOS FinTech
+- **Aesthetic:** Clean, crisp, high-trust executive Swiss typography and Apple iOS FinTech.
+- **Platforms:** **iPhone First (PWA / Standalone Web App)** + Responsive Desktop Studio.
+- **Color Palette:**
+  - **Canvas Background:** Pure soft slate `#F8FAFC` (clean, airy, daylight-readable).
+  - **Surface & Cards:** Pure white `#FFFFFF` with ultra-fine borders `#E2E8F0` and soft diffusion shadows.
+  - **Primary Brand / Action:** Deep Executive Navy `#0F172A` and Royal Cobalt `#2563EB` (high-contrast, crystal clear).
+  - **Financial Highlights:** Refined Emerald `#059669` and Warm Gold `#D97706`.
+  - **Text:** Deep Charcoal `#0F172A` (900) for headers, Slate `#475569` (600) for body, Slate `#94A3B8` (400) for captions.
+  - **Anti-Slop Ban:** No pitch-black dark-mode default, no gloomy murky neon-green hacker colors, no AI purple meshes.
 
 ---
 
-## 3. Typography & Hierarchy
+## 2. iPhone Mobile-First Native Architecture
 
-- **Interface Sans:** Clean, technical sans-serif (`Inter`, `Plus Jakarta Sans`, system fallbacks) for dense form inputs, toolbar controls, and metadata tags.
-- **Monospace Financial Numbers:** `font-mono` with `tabular-nums` for all numeric amounts (HT, TVA, TTC, N° BC, N° Facture, RIB, NIF) to ensure perfect vertical alignment in billing tables.
-- **Official Print Serif:** Classic Algerian editorial serif (`Playfair Display`, `Georgia`, or `Merriweather`) reserved exclusively for the newspaper header banner and the official title *"RÉPUBLIQUE ALGÉRIENNE DÉMOCRATIQUE ET POPULAIRE"* and *"FACTURE COMMERCIALE"*.
+### A. iOS PWA & Standalone Specs
+- `viewport-fit=cover` with `env(safe-area-inset-top)` and `env(safe-area-inset-bottom)`.
+- Apple Mobile Web App tags: `apple-mobile-web-app-capable: yes`, `apple-mobile-web-app-status-bar-style: default`.
+- Direct Camera Integration: `capture="environment"` allows taking a high-res photo of the paper Bon de Commande directly on iPhone.
 
----
-
-## 4. Layout Architecture (The Split Studio)
-
-```
-[ Top Navigation: Logo | Document Title | Sync Status | Action Buttons ]
-┌──────────────────────────────────────┬──────────────────────────────────────┐
-│  LEFT PANEL: Document Studio (45%)   │ RIGHT PANEL: Legal Workspace (55%)   │
-│                                      │                                      │
-│  - Ingestion Dropzone & Paste Hook   │  - Tabs: [ Formulaire ] [ Aperçu A4] │
-│  - Zoom, Pan, Rotate Toolbar         │  - Form View: Grouped legal inputs   │
-│  - High-Res Bon de Commande Viewer   │  - Live A4 Canvas: Scaled sheet with  │
-│  - AI Confidence & Field Highlight   │    true print margins and stamps     │
-└──────────────────────────────────────┴──────────────────────────────────────┘
-[ Action Footer: Keyboard shortcuts (Cmd+P, Cmd+Enter) | Auto-save status ]
-```
+### B. Mobile Navigation (iOS Bottom Tab Bar)
+Four primary tabs (48px touch targets, haptic feel):
+1. 📷 **Scanner** (Direct Camera, Photo Library, interactive zoom/rotate)
+2. 📝 **Formulaire** (Touch-friendly inputs with `inputmode="decimal"`, instant 19% TVA + TTC auto-calculation)
+3. 📄 **Aperçu A4** (Pixel-perfect legal A4 sheet with 1-tap Print & PDF Export)
+4. 📁 **Historique** (Recent invoices list with search, status filters, and duplicate)
 
 ---
 
-## 5. Print Perfection Rules (`@media print`)
-- **Dimensions:** Strict ISO A4 portrait (`210mm × 297mm`).
-- **Margins:** Fixed `12mm 10mm` margin box. Zero browser-injected header/footer timestamps or URL slugs.
-- **Hairlines:** Crisp `1px solid #cbd5e1` borders that render sharp on 300/600 DPI office laser printers.
-- **Wet Seal Area:** A designated 70mm × 35mm framed stamping zone for *"Le Directeur de la Publication / Cachet et Signature"* with zero page-break clipping.
+## 3. Desktop Workstation Enhancement
+On large screens ($\ge 1024\text{px}$), the interface seamlessly expands into a refined two-column Swiss studio with side-by-side scanner and live preview, while maintaining the crisp daylight color scheme.

@@ -1,19 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   UploadCloud,
+  Camera,
   ZoomIn,
   ZoomOut,
   RotateCw,
   Maximize2,
   FileImage,
   Sparkles,
-  Loader2,
-  Clipboard,
   FileText,
-  CheckCircle,
+  CheckCircle2,
   Eye,
-  RefreshCcw,
+  RefreshCw,
 } from 'lucide-react';
+import { Button } from './ui/button';
+import { Tabs, TabsList, TabsTrigger } from './ui/tabs';
 
 interface DocumentStudioProps {
   bcImage: string | null;
@@ -42,7 +43,9 @@ export const DocumentStudio: React.FC<DocumentStudioProps> = ({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const temoinInputRef = useRef<HTMLInputElement>(null);
+  const temoinCameraInputRef = useRef<HTMLInputElement>(null);
 
   const currentImage = activeTab === 'bc' ? bcImage : temoinImage;
 
@@ -126,72 +129,77 @@ export const DocumentStudio: React.FC<DocumentStudioProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-950 border-r border-slate-800 select-none">
+    <div className="flex flex-col h-full bg-slate-50/60 border-r border-slate-200 select-none">
       {/* Studio Header Bar */}
-      <div className="p-3 bg-slate-900 border-b border-slate-800 flex items-center justify-between">
+      <div className="p-3 bg-white border-b border-slate-200 flex items-center justify-between">
         {/* Document Selector Tabs */}
-        <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
-          <button
-            onClick={() => setActiveTab('bc')}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-md font-medium transition-all ${
-              activeTab === 'bc'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <FileText className="w-3.5 h-3.5" />
-            <span>Bon de Commande</span>
-            {bcImage && <CheckCircle className="w-3 h-3 text-emerald-300 ml-0.5" />}
-          </button>
+        <Tabs
+          value={activeTab}
+          onValueChange={(val) => setActiveTab(val as 'bc' | 'temoin')}
+        >
+          <TabsList className="bg-slate-100 p-0.5 h-9">
+            <TabsTrigger
+              value="bc"
+              className="gap-1.5 text-xs py-1 px-3 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-xs"
+            >
+              <FileText className="w-3.5 h-3.5 text-blue-600" />
+              <span>Bon de Commande</span>
+              {bcImage && (
+                <CheckCircle2 className="w-3 h-3 text-emerald-600 ml-0.5" />
+              )}
+            </TabsTrigger>
 
-          <button
-            onClick={() => setActiveTab('temoin')}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-md font-medium transition-all ${
-              activeTab === 'temoin'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Eye className="w-3.5 h-3.5" />
-            <span>Témoin de Parution</span>
-            {temoinImage && <CheckCircle className="w-3 h-3 text-emerald-300 ml-0.5" />}
-          </button>
-        </div>
+            <TabsTrigger
+              value="temoin"
+              className="gap-1.5 text-xs py-1 px-3 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-xs"
+            >
+              <Eye className="w-3.5 h-3.5 text-blue-600" />
+              <span>Témoin (Pige)</span>
+              {temoinImage && (
+                <CheckCircle2 className="w-3 h-3 text-emerald-600 ml-0.5" />
+              )}
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         {/* Viewport Control Tools */}
         {currentImage && (
-          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
-            <button
+          <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200 shadow-xs">
+            <Button
+              variant="ghost"
+              size="icon-sm"
               onClick={handleZoomOut}
-              className="p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors"
               title="Zoom arrière"
             >
-              <ZoomOut className="w-4 h-4" />
-            </button>
-            <span className="text-[11px] font-mono text-slate-300 px-1.5 min-w-[42px] text-center">
+              <ZoomOut className="w-3.5 h-3.5 text-slate-600" />
+            </Button>
+            <span className="text-[11px] font-mono font-medium text-slate-600 px-1 min-w-[38px] text-center">
               {Math.round(zoom * 100)}%
             </span>
-            <button
+            <Button
+              variant="ghost"
+              size="icon-sm"
               onClick={handleZoomIn}
-              className="p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors"
               title="Zoom avant"
             >
-              <ZoomIn className="w-4 h-4" />
-            </button>
-            <button
+              <ZoomIn className="w-3.5 h-3.5 text-slate-600" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
               onClick={handleRotate}
-              className="p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors"
               title="Pivoter de 90°"
             >
-              <RotateCw className="w-4 h-4" />
-            </button>
-            <button
+              <RotateCw className="w-3.5 h-3.5 text-slate-600" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
               onClick={handleResetZoom}
-              className="p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors"
               title="Réinitialiser la vue"
             >
-              <Maximize2 className="w-4 h-4" />
-            </button>
+              <Maximize2 className="w-3.5 h-3.5 text-slate-600" />
+            </Button>
           </div>
         )}
       </div>
@@ -206,10 +214,13 @@ export const DocumentStudio: React.FC<DocumentStudioProps> = ({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         className={`relative flex-1 overflow-hidden flex items-center justify-center p-4 transition-colors ${
-          isDropOver ? 'bg-emerald-950/20 border-2 border-dashed border-emerald-500/50' : 'bg-slate-950'
+          isDropOver
+            ? 'bg-blue-50/50 border-2 border-dashed border-blue-400'
+            : 'bg-slate-100/50'
         } ${zoom > 1 ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-default'}`}
       >
-        {/* Hidden File Inputs */}
+        {/* Hidden File and Camera Inputs */}
+        {/* File Pickers */}
         <input
           ref={fileInputRef}
           type="file"
@@ -229,6 +240,28 @@ export const DocumentStudio: React.FC<DocumentStudioProps> = ({
           }}
         />
 
+        {/* Direct iPhone Camera Inputs with capture="environment" */}
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => {
+            if (e.target.files?.[0]) onFileSelected(e.target.files[0]);
+          }}
+        />
+        <input
+          ref={temoinCameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => {
+            if (e.target.files?.[0]) onTemoinSelected(e.target.files[0]);
+          }}
+        />
+
         {currentImage ? (
           /* Render Document Image with Pan, Zoom & Rotation */
           <div
@@ -241,79 +274,94 @@ export const DocumentStudio: React.FC<DocumentStudioProps> = ({
             <img
               src={currentImage}
               alt="Bon de commande ou témoin numérisé"
-              className="max-h-[78vh] w-auto object-contain rounded-md shadow-2xl border border-slate-700/80 pointer-events-none"
+              className="max-h-[75vh] w-auto object-contain rounded-lg shadow-md border border-slate-200 pointer-events-none"
             />
           </div>
         ) : (
           /* Empty State Dropzone */
-          <div className="max-w-md w-full p-8 rounded-2xl bg-slate-900/60 border border-slate-800 text-center flex flex-col items-center shadow-xl">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-950/40 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-4">
-              <UploadCloud className="w-8 h-8" />
+          <div className="max-w-md w-full p-8 rounded-2xl bg-white border border-slate-200/90 text-center flex flex-col items-center shadow-sm">
+            <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 mb-4">
+              <UploadCloud className="w-7 h-7 stroke-[1.75px]" />
             </div>
 
-            <h3 className="text-base font-semibold text-white mb-1">
+            <h3 className="text-base font-semibold text-slate-900 mb-1">
               {activeTab === 'bc'
-                ? "Déposer le Bon de Commande ANEP"
-                : "Joindre le Témoin de Parution (Pige)"}
+                ? "Numériser le Bon de Commande ANEP"
+                : "Joindre le Témoin de Parution"}
             </h3>
-            <p className="text-xs text-slate-400 max-w-xs mb-6">
-              Glissez-déposez un scan (JPG, PNG, PDF) ou appuyez directement sur{' '}
-              <kbd className="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-[11px] text-emerald-300">
-                Cmd+V
-              </kbd>{' '}
-              pour coller une capture d'écran.
+            <p className="text-xs text-slate-500 max-w-xs mb-6 leading-relaxed">
+              Scannez le document avec l'appareil photo de votre smartphone ou importez une image/PDF.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center gap-3 w-full">
-              <button
+            <div className="flex flex-col gap-2.5 w-full">
+              {/* iPhone Direct Camera Button */}
+              <Button
+                variant="primary"
                 onClick={() => {
                   if (activeTab === 'bc') {
-                    fileInputRef.current?.click();
+                    cameraInputRef.current?.click();
                   } else {
-                    temoinInputRef.current?.click();
+                    temoinCameraInputRef.current?.click();
                   }
                 }}
-                className="w-full sm:flex-1 py-2 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs flex items-center justify-center gap-2 transition-all shadow-sm shadow-emerald-950"
+                className="w-full font-medium"
               >
-                <FileImage className="w-4 h-4" />
-                <span>Parcourir le fichier</span>
-              </button>
+                <Camera className="w-4 h-4" />
+                <span>Prendre une photo (Appareil)</span>
+              </Button>
 
-              {activeTab === 'bc' && (
-                <button
-                  onClick={onLoadSample}
-                  className="w-full sm:flex-1 py-2 px-4 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium text-xs flex items-center justify-center gap-2 transition-all"
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (activeTab === 'bc') {
+                      fileInputRef.current?.click();
+                    } else {
+                      temoinInputRef.current?.click();
+                    }
+                  }}
+                  className="flex-1 text-xs"
                 >
-                  <Sparkles className="w-4 h-4 text-emerald-400" />
-                  <span>Exemple ANEP</span>
-                </button>
-              )}
+                  <FileImage className="w-3.5 h-3.5 text-slate-600" />
+                  <span>Importer un fichier</span>
+                </Button>
+
+                {activeTab === 'bc' && (
+                  <Button
+                    variant="secondary"
+                    onClick={onLoadSample}
+                    className="flex-1 text-xs"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Exemple ANEP</span>
+                  </Button>
+                )}
+              </div>
             </div>
 
-            <div className="mt-5 pt-4 border-t border-slate-800/80 w-full flex items-center justify-center gap-2 text-[11px] text-slate-500">
-              <Clipboard className="w-3.5 h-3.5" />
-              <span>Collez directement depuis le presse-papier</span>
+            <div className="mt-5 pt-4 border-t border-slate-100 w-full flex items-center justify-center gap-2 text-[11px] text-slate-400">
+              <span>Glissez-déposez ou collez une capture d'écran</span>
             </div>
           </div>
         )}
 
         {/* AI Multimodal Analysis Overlay */}
         {isAnalyzing && (
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-30 flex flex-col items-center justify-center p-6 text-center">
+          <div className="absolute inset-0 bg-white/85 backdrop-blur-xs z-30 flex flex-col items-center justify-center p-6 text-center">
             <div className="relative mb-4">
-              <div className="w-16 h-16 rounded-full border-4 border-emerald-500/20 border-t-emerald-400 animate-spin flex items-center justify-center" />
-              <Sparkles className="w-6 h-6 text-emerald-400 absolute inset-0 m-auto animate-pulse" />
+              <div className="w-14 h-14 rounded-full border-3 border-blue-100 border-t-blue-600 animate-spin flex items-center justify-center" />
+              <Sparkles className="w-5 h-5 text-blue-600 absolute inset-0 m-auto animate-pulse" />
             </div>
 
-            <h4 className="text-base font-semibold text-white mb-1">
-              Analyse Vision par Gemini 3.8 Flash...
+            <h4 className="text-sm font-semibold text-slate-900 mb-1">
+              Extraction Vision par Gemini 3.8 Flash...
             </h4>
-            <p className="text-xs text-slate-400 max-w-sm mb-4">
-              Déchiffrement des mentions d'insertion, dates de parution, formats (colonnes × cm) et tarification HT ANEP.
+            <p className="text-xs text-slate-500 max-w-sm mb-4 leading-relaxed">
+              Déchiffrement automatique : N° de Bon de Commande, objet d'annonce, dates, dimensions et montants HT.
             </p>
 
-            <div className="w-48 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-              <div className="h-full bg-emerald-500 rounded-full animate-pulse w-3/4" />
+            <div className="w-44 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+              <div className="h-full bg-blue-600 rounded-full animate-pulse w-3/4" />
             </div>
           </div>
         )}
@@ -321,16 +369,18 @@ export const DocumentStudio: React.FC<DocumentStudioProps> = ({
         {/* Floating Change Image Action */}
         {currentImage && !isAnalyzing && (
           <div className="absolute bottom-4 left-4 z-20 flex items-center gap-2">
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => {
                 if (activeTab === 'bc') fileInputRef.current?.click();
                 else temoinInputRef.current?.click();
               }}
-              className="py-1.5 px-3 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-700 text-xs font-medium text-slate-200 flex items-center gap-1.5 backdrop-blur-md transition-colors shadow-lg"
+              className="bg-white/95 backdrop-blur-xs text-xs shadow-md"
             >
-              <RefreshCcw className="w-3.5 h-3.5" />
-              <span>Changer le document</span>
-            </button>
+              <RefreshCw className="w-3 h-3 text-slate-600" />
+              <span>Remplacer le document</span>
+            </Button>
           </div>
         )}
       </div>

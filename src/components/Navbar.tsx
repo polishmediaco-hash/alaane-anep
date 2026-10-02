@@ -1,5 +1,7 @@
 import React from 'react';
-import { FileText, Sparkles, Database, Settings, History, PlusCircle, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Sparkles, Database, Settings, History, Plus, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Button } from './ui/button';
+import { Badge } from './ui/badge';
 
 interface NavbarProps {
   hasGeminiKey: boolean;
@@ -21,38 +23,41 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenSettings,
 }) => {
   return (
-    <nav className="h-16 bg-slate-900/90 border-b border-slate-800 backdrop-blur-md px-4 lg:px-6 flex items-center justify-between sticky top-0 z-40 select-none">
+    <nav className="h-16 bg-white/95 border-b border-slate-200/90 backdrop-blur-md px-4 lg:px-6 flex items-center justify-between sticky top-0 z-40 select-none pt-safe">
       {/* Brand & Newspaper Identity */}
       <div className="flex items-center gap-3">
-        <div className="relative group cursor-pointer" onClick={onNewInvoice}>
-          <div className="w-10 h-10 rounded-lg bg-emerald-950/80 border border-emerald-500/30 flex items-center justify-center overflow-hidden shadow-sm">
+        <div
+          className="relative group cursor-pointer flex items-center"
+          onClick={onNewInvoice}
+          title="Accueil / Nouvelle Facture"
+        >
+          <div className="w-9 h-9 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden shadow-xs">
             <img
               src="/assets/alaane-logo.png"
               alt="Alaane Logo"
-              className="w-8 h-8 object-contain"
+              className="w-7 h-7 object-contain"
               onError={(e) => {
-                // Fallback to text icon if logo fails
                 (e.currentTarget as HTMLElement).style.display = 'none';
               }}
             />
           </div>
-          <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-slate-900" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white" />
         </div>
 
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="font-bold text-base lg:text-lg tracking-tight text-white flex items-center gap-2">
+            <h1 className="font-bold text-sm lg:text-base tracking-tight text-slate-900 flex items-center gap-2">
               Journal Alaane
-              <span className="text-xs px-2 py-0.5 rounded font-mono font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <span className="text-[11px] px-2 py-0.5 rounded font-mono font-medium bg-slate-100 text-slate-700 border border-slate-200">
                 جريدة الآن
               </span>
             </h1>
-            <span className="text-slate-600 hidden sm:inline">•</span>
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 hidden sm:inline">
+            <span className="text-slate-300 hidden sm:inline">|</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-600 hidden sm:inline">
               Facturation ANEP
             </span>
           </div>
-          <p className="text-[11px] text-slate-400 font-mono hidden md:block">
+          <p className="text-[11px] text-slate-500 hidden md:block">
             Système d'automatisation des Bons de Commande & Factures Légales (Décret 05-468)
           </p>
         </div>
@@ -60,84 +65,89 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Connectivity Status Badges */}
       <div className="hidden xl:flex items-center gap-2 text-xs">
-        {/* Gemini Vision Status */}
         <div
           onClick={onOpenSettings}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border cursor-pointer transition-colors ${
-            hasGeminiKey
-              ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/30 hover:bg-emerald-900/60'
-              : 'bg-amber-950/60 text-amber-300 border-amber-500/30 hover:bg-amber-900/60'
-          }`}
+          className="cursor-pointer"
           title="Cliquez pour configurer la clé Gemini"
         >
-          <Sparkles className="w-3.5 h-3.5" />
-          <span className="font-medium">
-            Gemini 3.8 Flash : {hasGeminiKey ? 'Actif' : 'Clé requise'}
-          </span>
-          {hasGeminiKey ? (
-            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-          ) : (
-            <AlertCircle className="w-3 h-3 text-amber-400" />
-          )}
+          <Badge
+            variant={hasGeminiKey ? 'success' : 'warning'}
+            className="cursor-pointer hover:opacity-90"
+          >
+            <Sparkles className="w-3 h-3 stroke-[2px]" />
+            <span>Gemini 3.8 Flash : {hasGeminiKey ? 'Actif' : 'Clé requise'}</span>
+            {hasGeminiKey ? (
+              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+            ) : (
+              <AlertCircle className="w-3 h-3 text-amber-600" />
+            )}
+          </Badge>
         </div>
 
-        {/* Supabase Status */}
         <div
           onClick={onOpenSettings}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border cursor-pointer transition-colors ${
-            isSupabaseOnline
-              ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/30 hover:bg-emerald-900/60'
-              : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'
-          }`}
+          className="cursor-pointer"
           title="Cliquez pour configurer Supabase"
         >
-          <Database className="w-3.5 h-3.5" />
-          <span>{isSupabaseOnline ? 'Supabase Connecté' : 'Mode Local'}</span>
+          <Badge
+            variant={isSupabaseOnline ? 'primary' : 'secondary'}
+            className="cursor-pointer hover:opacity-90"
+          >
+            <Database className="w-3 h-3 stroke-[2px]" />
+            <span>{isSupabaseOnline ? 'Supabase Cloud' : 'Mode Local'}</span>
+          </Badge>
         </div>
       </div>
 
       {/* Quick Action Buttons */}
       <div className="flex items-center gap-2">
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           onClick={onLoadSample}
-          className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-300 bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/30 rounded-lg transition-all shadow-sm"
+          className="hidden sm:inline-flex"
           title="Charger un exemple réel de Bon de Commande ANEP"
         >
-          <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+          <Sparkles className="w-3.5 h-3.5 text-blue-600" />
           <span>Exemple ANEP</span>
-        </button>
+        </Button>
 
-        <button
+        <Button
+          variant="primary"
+          size="sm"
           onClick={onNewInvoice}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 active:scale-95 rounded-lg transition-all shadow-sm shadow-emerald-900/20"
+          className="font-medium"
         >
-          <PlusCircle className="w-3.5 h-3.5" />
+          <Plus className="w-3.5 h-3.5" />
           <span>Nouvelle</span>
-        </button>
+        </Button>
 
-        <div className="h-4 w-px bg-slate-800 mx-1" />
+        <div className="h-4 w-px bg-slate-200 mx-1 hidden sm:block" />
 
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           onClick={onOpenHistory}
-          className="relative flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-800 border border-slate-700 rounded-lg transition-all"
+          className="hidden lg:inline-flex relative"
         >
-          <History className="w-3.5 h-3.5 text-slate-400" />
-          <span className="hidden md:inline">Historique</span>
+          <History className="w-3.5 h-3.5 text-slate-500" />
+          <span>Historique</span>
           {invoiceCount > 0 && (
-            <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-slate-700 text-emerald-400 font-bold border border-slate-600">
+            <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-blue-50 text-blue-700 font-bold border border-blue-200">
               {invoiceCount}
             </span>
           )}
-        </button>
+        </Button>
 
-        <button
+        <Button
+          variant="ghost"
+          size="icon-sm"
           onClick={onOpenSettings}
-          className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 border border-transparent hover:border-slate-700 rounded-lg transition-all"
           title="Paramètres API & Éditeur"
           aria-label="Paramètres"
         >
-          <Settings className="w-4 h-4" />
-        </button>
+          <Settings className="w-4 h-4 text-slate-600" />
+        </Button>
       </div>
     </nav>
   );

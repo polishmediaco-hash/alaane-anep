@@ -49,8 +49,8 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({
           <span className="text-xs font-bold text-slate-800">
             Aperçu Direct Format A4 (Norme Algérienne)
           </span>
-          <Badge variant="success" className="hidden md:inline-flex text-[10px]">
-            <CheckCircle2 className="w-3 h-3 mr-1 text-emerald-600" />
+          <Badge variant="secondary" className="hidden md:inline-flex text-[10px] bg-slate-100 text-slate-700 border border-slate-200">
+            <CheckCircle2 className="w-3 h-3 mr-1 text-slate-700" />
             <span>{invoice.items.length} Bon{invoice.items.length > 1 ? 's' : ''} de Commande</span>
           </Badge>
         </div>
@@ -61,7 +61,7 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({
             variant="outline"
             size="sm"
             onClick={handleShare}
-            className="text-xs min-h-[36px]"
+            className="text-xs min-h-[34px]"
             title="Partager par WhatsApp, Email ou AirDrop"
           >
             {copied ? (
@@ -78,10 +78,10 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({
           </Button>
 
           <Button
-            variant="primary"
+            variant="default"
             size="sm"
             onClick={onPrint}
-            className="font-medium text-xs shadow-xs min-h-[36px]"
+            className="text-xs min-h-[34px] bg-slate-900 hover:bg-slate-800 text-white font-medium shadow-2xs"
           >
             <Printer className="w-3.5 h-3.5 mr-1" />
             <span>Imprimer (3 Exemplaires)</span>

@@ -54,7 +54,7 @@ export const MobileTabBar: React.FC<MobileTabBarProps> = ({
               className={cn(
                 'relative flex flex-col items-center justify-center min-h-[44px] min-w-[48px] py-1 px-3 rounded-xl transition-all text-xs font-medium',
                 isActive
-                  ? 'text-blue-600 font-semibold'
+                  ? 'text-slate-900 font-bold'
                   : 'text-slate-500 hover:text-slate-900 active:scale-95'
               )}
             >
@@ -66,7 +66,7 @@ export const MobileTabBar: React.FC<MobileTabBarProps> = ({
                   )}
                 />
                 {tab.badge && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-slate-900 animate-pulse" />
                 )}
               </div>
               <span className="text-[11px] mt-1 tracking-tight">{tab.label}</span>

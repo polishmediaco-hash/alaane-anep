@@ -85,13 +85,14 @@ export async function fileToBase64(file: File): Promise<{ base64: string; mimeTy
  */
 export async function analyzeBonDeCommande(
   fileOrBase64: File | { base64: string; mimeType: string },
-  apiKey: string
+  apiKey?: string
 ): Promise<AnepBonDeCommandeData> {
-  if (!apiKey || !apiKey.trim()) {
-    throw new Error("Clé API Gemini manquante. Veuillez renseigner votre clé API dans les Paramètres.");
+  const resolvedKey = apiKey?.trim() || (import.meta.env.VITE_GEMINI_API_KEY as string)?.trim() || '';
+  if (!resolvedKey) {
+    throw new Error("Service d'extraction IA indisponible : clé d'environnement non configurée.");
   }
 
-  const ai = new GoogleGenAI({ apiKey: apiKey.trim() });
+  const ai = new GoogleGenAI({ apiKey: resolvedKey });
 
   let base64Data: string;
   let mimeType: string;
@@ -105,8 +106,8 @@ export async function analyzeBonDeCommande(
     mimeType = fileOrBase64.mimeType;
   }
 
-  // Model selection: gemini-3.8-flash per gemini-api-dev guidelines
-  const modelName = 'gemini-3.8-flash';
+  // Model selection: gemini-2.5-flash per official Google GenAI SDK standards
+  const modelName = 'gemini-2.5-flash';
 
   let rawJsonText = '';
 

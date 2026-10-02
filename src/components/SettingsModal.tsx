@@ -37,9 +37,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onSavePublisher,
   onConfigUpdated,
 }) => {
-  const [activeTab, setActiveTab] = useState<'api' | 'publisher'>('api');
+  const [activeTab, setActiveTab] = useState<'publisher' | 'cloud'>('publisher');
   const [config, setConfig] = useState<CloudConfig>({
-    geminiApiKey: '',
     supabaseUrl: '',
     supabaseAnonKey: '',
   });
@@ -68,17 +67,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-2xl p-0 overflow-hidden">
         {/* Modal Header */}
-        <DialogHeader className="p-5 pb-4 border-b border-slate-100">
+        <DialogHeader className="p-4 sm:p-5 pb-3 border-b border-slate-100">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+            <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-800">
               <Settings className="w-4 h-4" />
             </div>
             <div>
-              <DialogTitle className="text-base font-bold text-slate-900">
-                Paramètres & Configurations
+              <DialogTitle className="text-sm font-bold text-slate-900">
+                Paramètres Légaux & Profil Éditeur
               </DialogTitle>
               <DialogDescription className="text-xs text-slate-500 mt-0.5">
-                Clé Gemini Vision 3.8 Flash, Base de données Supabase et Mentions Éditeur
+                Coordonnées fiscales Journal Alaane, compte bancaire BNA et synchronisation cloud
               </DialogDescription>
             </div>
           </div>
@@ -87,78 +86,43 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         {/* Tabs */}
         <Tabs
           value={activeTab}
-          onValueChange={(val) => setActiveTab(val as 'api' | 'publisher')}
+          onValueChange={(val) => setActiveTab(val as 'publisher' | 'cloud')}
           className="flex flex-col flex-1"
         >
           <div className="px-5 pt-3 border-b border-slate-100">
-            <TabsList className="bg-slate-100 p-0.5 h-9">
+            <TabsList className="bg-slate-100 p-0.5 h-8">
               <TabsTrigger
-                value="api"
-                className="gap-2 text-xs py-1 px-3 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-xs"
+                value="publisher"
+                className="gap-2 text-xs py-1 px-3 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-2xs"
               >
-                <KeyRound className="w-3.5 h-3.5 text-blue-600" />
-                <span>API & Cloud</span>
+                <Building className="w-3.5 h-3.5 text-slate-700" />
+                <span>Identité Journal Alaane</span>
               </TabsTrigger>
 
               <TabsTrigger
-                value="publisher"
-                className="gap-2 text-xs py-1 px-3 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-xs"
+                value="cloud"
+                className="gap-2 text-xs py-1 px-3 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-2xs"
               >
-                <Building className="w-3.5 h-3.5 text-blue-600" />
-                <span>Identité Journal Alaane</span>
+                <Database className="w-3.5 h-3.5 text-slate-700" />
+                <span>Base de Données Cloud</span>
               </TabsTrigger>
             </TabsList>
           </div>
 
           {/* Form Body */}
           <div className="p-5 overflow-y-auto max-h-[60vh]">
-            <TabsContent value="api" className="space-y-4 m-0">
-              {/* Gemini API Key */}
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-blue-600" />
-                    <label className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                      Clé API Google Gemini (Vision 3.8 Flash)
-                    </label>
-                  </div>
-                  <a
-                    href="https://aistudio.google.com/app/apikey"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[11px] text-blue-600 hover:underline flex items-center gap-1 font-medium"
-                  >
-                    <span>Obtenir une clé</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
-
-                <Input
-                  type="password"
-                  value={config.geminiApiKey || ''}
-                  onChange={(e) =>
-                    setConfig({ ...config, geminiApiKey: e.target.value })
-                  }
-                  placeholder="AIzaSy..."
-                  className="font-mono text-xs"
-                />
-
-                <p className="text-[11px] text-slate-500 leading-relaxed">
-                  Votre clé API est enregistrée localement dans votre navigateur et communique exclusivement avec l'API Google Gemini.
-                </p>
-              </div>
-
+            <TabsContent value="cloud" className="space-y-4 m-0">
               {/* Supabase Database & Storage */}
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-3.5">
                 <div className="flex items-center gap-2">
-                  <Database className="w-4 h-4 text-blue-600" />
+                  <Database className="w-4 h-4 text-slate-700" />
                   <label className="text-xs font-bold text-slate-900 uppercase tracking-wider">
                     Base de Données Supabase (Optionnel)
                   </label>
                 </div>
 
                 <p className="text-[11px] text-slate-500">
-                  Si non configuré, l'application fonctionne parfaitement en <strong className="text-slate-800">Mode Local</strong> avec sauvegarde dans le navigateur.
+                  Si non configuré, l'application fonctionne parfaitement en <strong className="text-slate-800">Mode Local</strong> avec sauvegarde automatique dans votre navigateur.
                 </p>
 
                 <div>

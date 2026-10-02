@@ -15,7 +15,6 @@ import {
   fetchPublisherProfile,
   savePublisherProfile,
   uploadScanDocument,
-  getSavedConfig,
   isSupabaseConnected,
 } from './lib/supabase';
 import {
@@ -23,25 +22,19 @@ import {
   generateSampleBonDeCommandeCanvas,
 } from './lib/sampleData';
 
-import { Navbar } from './components/Navbar';
-import { StepProgressBar, WorkflowStep } from './components/StepProgressBar';
+import { Navbar, WorkflowStep } from './components/Navbar';
 import { DocumentStudio } from './components/DocumentStudio';
 import { InvoiceEditor } from './components/InvoiceEditor';
 import { InvoicePreview } from './components/InvoicePreview';
 import { DocumentPeekDrawer } from './components/DocumentPeekDrawer';
+import { AiChatWindow } from './components/AiChatWindow';
 import { HistoryModal } from './components/HistoryModal';
 import { SettingsModal } from './components/SettingsModal';
 import { MobileTabBar, MobileTab } from './components/MobileTabBar';
-import { Button } from './components/ui/button';
-import { Badge } from './components/ui/badge';
 
-import { Eye, Edit3, CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Sparkles } from 'lucide-react';
 
 export function App() {
-  // Cloud & Config State
-  const [hasGeminiKey, setHasGeminiKey] = useState(false);
-  const [isSupabaseOnline, setIsSupabaseOnline] = useState(false);
-
   // Publisher Profile State
   const [publisher, setPublisher] = useState<PublisherProfile>(DEFAULT_PUBLISHER);
 
@@ -56,13 +49,12 @@ export function App() {
   const [isSaving, setIsSaving] = useState(false);
   const [isPeekOpen, setIsPeekOpen] = useState(false);
 
-  // Guided Linear Workflow Navigation
+  // Workflow State & Navigation
   const [workflowStep, setWorkflowStep] = useState<WorkflowStep>('scan');
-  // Mobile Tab: 'scan' | 'editor' | 'preview' | 'history'
   const [mobileTab, setMobileTab] = useState<MobileTab>('scan');
-  // Desktop Right Tab: 'editor' | 'preview'
-  const [desktopRightTab, setDesktopRightTab] = useState<'editor' | 'preview'>('editor');
 
+  // Modals & Chat Windows
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -124,12 +116,8 @@ export function App() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Refresh status and load cached data on mount
+  // Refresh and load cached data on mount
   const refreshConfigAndData = useCallback(async () => {
-    const config = getSavedConfig();
-    setHasGeminiKey(Boolean(config.geminiApiKey?.trim()));
-    setIsSupabaseOnline(isSupabaseConnected());
-
     const loadedPublisher = await fetchPublisherProfile();
     setPublisher(loadedPublisher);
 
@@ -148,12 +136,10 @@ export function App() {
   // Global Keyboard Shortcuts (Cmd+P, Cmd+S)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Cmd+P / Ctrl+P -> Print
       if ((e.metaKey || e.ctrlKey) && e.key === 'p') {
         e.preventDefault();
         handlePrint();
       }
-      // Cmd+S / Ctrl+S -> Save
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
         e.preventDefault();
         handleSaveInvoice();
@@ -214,9 +200,8 @@ export function App() {
     };
   };
 
-  // Process uploaded document with Gemini 3.8 Flash
+  // Process uploaded document with Gemini Flash
   const handleFileSelected = async (file: File) => {
-    // 1. Instant local image preview
     const reader = new FileReader();
     reader.onload = () => {
       const dataUrl = reader.result as string;
@@ -233,20 +218,9 @@ export function App() {
     };
     reader.readAsDataURL(file);
 
-    // 2. Read Gemini Key
-    const config = getSavedConfig();
-    const apiKey = config.geminiApiKey?.trim();
-
-    if (!apiKey) {
-      showToast("Veuillez renseigner votre clé API Gemini dans les Réglages pour activer l'extraction vision.");
-      setIsSettingsOpen(true);
-      return;
-    }
-
     setIsAnalyzing(true);
     try {
-      // Multimodal Vision extraction
-      const extracted = await analyzeBonDeCommande(file, apiKey);
+      const extracted = await analyzeBonDeCommande(file);
 
       setCurrentInvoice((prev) => {
         const updated = updateInvoiceWithItem(prev, activeBcIndex, {
@@ -266,7 +240,6 @@ export function App() {
         return updated;
       });
 
-      // Upload to Supabase Storage if online
       if (isSupabaseConnected()) {
         uploadScanDocument(file, 'anep_bc').then((url) => {
           if (url) {
@@ -282,21 +255,26 @@ export function App() {
       }
 
       showToast(`Données extraites avec succès pour le BC #${activeBcIndex + 1} !`);
-      // Advance to editor step
       setWorkflowStep('editor');
       setMobileTab('editor');
     } catch (err: any) {
-      console.error('Gemini vision error:', err);
-      showToast(`Erreur d'analyse : ${err?.message || 'Échec de la lecture'}`);
+      console.warn('Extraction error:', err);
+      showToast(`Extraction IA : ${err?.message || 'Document traité en mode local.'}`);
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  const handleTemoinSelected = (file: File) => {
+  // Handle Témoin de Parution Upload
+  const handleTemoinSelected = async (file: File) => {
     const reader = new FileReader();
     reader.onload = () => {
-      setTemoinImage(reader.result as string);
+      const dataUrl = reader.result as string;
+      setTemoinImage(dataUrl);
+      setCurrentInvoice((prev) => ({
+        ...prev,
+        temoin_image_url: dataUrl,
+      }));
     };
     reader.readAsDataURL(file);
 
@@ -390,7 +368,6 @@ export function App() {
     setActiveBcIndex(0);
     setTemoinImage(null);
     setWorkflowStep('scan');
-    setDesktopRightTab('editor');
     setMobileTab('scan');
     showToast("Nouvelle facture prête.");
   };
@@ -435,7 +412,6 @@ export function App() {
     setCurrentInvoice(duplicated);
     setIsHistoryOpen(false);
     setWorkflowStep('editor');
-    setDesktopRightTab('editor');
     setMobileTab('editor');
     showToast(`Facture dupliquée sous ${nextNum}.`);
   };
@@ -443,22 +419,16 @@ export function App() {
   // Native Print
   const handlePrint = () => {
     setWorkflowStep('preview');
-    setDesktopRightTab('preview');
     setMobileTab('preview');
     setTimeout(() => {
       window.print();
     }, 150);
   };
 
-  // Step Progress Bar Click Handler
+  // Step Switcher Handler
   const handleStepClick = (step: WorkflowStep) => {
     setWorkflowStep(step);
     setMobileTab(step);
-    if (step === 'preview') {
-      setDesktopRightTab('preview');
-    } else {
-      setDesktopRightTab('editor');
-    }
   };
 
   // Handle Mobile Tab Switch
@@ -473,31 +443,26 @@ export function App() {
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-50 text-slate-900 select-none">
-      {/* Top Executive Navigation Bar */}
+      {/* Unified 52px Executive Navigation Bar */}
       <Navbar
-        hasGeminiKey={hasGeminiKey}
-        isSupabaseOnline={isSupabaseOnline}
+        currentStep={workflowStep}
+        onStepChange={handleStepClick}
         invoiceCount={invoices.length}
+        bcCount={currentInvoice.items.length}
+        totalTtc={currentInvoice.amount_ttc}
         onNewInvoice={handleNewInvoice}
-        onLoadSample={handleLoadSample}
         onOpenHistory={() => setIsHistoryOpen(true)}
         onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenChat={() => setIsChatOpen(true)}
+        onPrint={handlePrint}
       />
 
-      {/* Guided 3-Step Workflow Progress Bar */}
-      <StepProgressBar
-        currentStep={workflowStep}
-        onStepClick={handleStepClick}
-        itemCount={currentInvoice.items.length}
-        invoiceNumber={currentInvoice.invoice_number}
-      />
-
-      {/* Responsive Workbench: Split Screen on Desktop (>= 1024px), Single Tab View on Mobile (< 1024px) */}
+      {/* Main Workbench: Split Screen on Desktop (>= 1024px), Single Tab on Mobile (< 1024px) */}
       <main className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
-        {/* Desktop View (>= 1024px) */}
+        {/* Desktop Split Studio (>= 1024px) */}
         <div className="hidden lg:flex flex-1 w-full h-full overflow-hidden">
-          {/* Left Studio: Source Scanned Document Studio (44%) */}
-          <div className="w-[44%] h-full flex flex-col document-studio border-r border-slate-200">
+          {/* Left Studio: Scanned Document Canvas (44%) */}
+          <div className="w-[44%] h-full flex flex-col document-studio border-r border-slate-200/90">
             <DocumentStudio
               bcImage={scannedBcDocuments[activeBcIndex]?.url || null}
               temoinImage={temoinImage}
@@ -511,80 +476,36 @@ export function App() {
               onTemoinSelected={handleTemoinSelected}
               onContinueToEditor={() => {
                 setWorkflowStep('editor');
-                setDesktopRightTab('editor');
               }}
             />
           </div>
 
-          {/* Right Studio: Verification Form & Live Printable A4 Invoice (56%) */}
-          <div className="w-[56%] h-full flex flex-col bg-slate-50 editor-panel">
-            {/* Desktop Switcher: Formulaire vs Aperçu A4 */}
-            <div className="h-11 bg-white border-b border-slate-200 px-4 flex items-center justify-between no-print shrink-0">
-              <div className="flex items-center gap-1.5">
-                <Button
-                  variant={desktopRightTab === 'editor' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => {
-                    setDesktopRightTab('editor');
-                    setWorkflowStep('editor');
-                  }}
-                  className="h-8 text-xs font-medium"
-                >
-                  <Edit3 className="w-3.5 h-3.5 mr-1" />
-                  <span>Vérification & Lignes ({currentInvoice.items.length} BC)</span>
-                </Button>
-
-                <Button
-                  variant={desktopRightTab === 'preview' ? 'primary' : 'ghost'}
-                  size="sm"
-                  onClick={() => {
-                    setDesktopRightTab('preview');
-                    setWorkflowStep('preview');
-                  }}
-                  className="h-8 text-xs font-medium"
-                >
-                  <Eye className="w-3.5 h-3.5 mr-1" />
-                  <span>Aperçu Impression A4</span>
-                </Button>
-              </div>
-
-              {/* Quick Invoice Number & Total Badge */}
-              <div className="text-xs text-slate-500 flex items-center gap-2">
-                <span>Total TTC :</span>
-                <Badge variant="primary" className="font-mono text-xs font-bold">
-                  {currentInvoice.amount_ttc.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} DA
-                </Badge>
-              </div>
-            </div>
-
-            {/* Desktop Active Content */}
-            <div className="flex-1 overflow-hidden">
-              {desktopRightTab === 'editor' ? (
-                <InvoiceEditor
-                  invoice={currentInvoice}
-                  onChange={setCurrentInvoice}
-                  onSave={handleSaveInvoice}
-                  onPrint={handlePrint}
-                  isSaving={isSaving}
-                  onOpenPeek={() => setIsPeekOpen(true)}
-                  hasScannedDocuments={scannedBcDocuments.length > 0}
-                  onContinueToPreview={() => {
-                    setWorkflowStep('preview');
-                    setDesktopRightTab('preview');
-                  }}
-                />
-              ) : (
-                <InvoicePreview
-                  invoice={currentInvoice}
-                  publisher={publisher}
-                  onPrint={handlePrint}
-                />
-              )}
-            </div>
+          {/* Right Studio: Verification Form OR Live Printable A4 Invoice (56%) */}
+          <div className="w-[56%] h-full flex flex-col bg-slate-50/60 editor-panel overflow-hidden">
+            {workflowStep === 'preview' ? (
+              <InvoicePreview
+                invoice={currentInvoice}
+                publisher={publisher}
+                onPrint={handlePrint}
+              />
+            ) : (
+              <InvoiceEditor
+                invoice={currentInvoice}
+                onChange={setCurrentInvoice}
+                onSave={handleSaveInvoice}
+                onPrint={handlePrint}
+                isSaving={isSaving}
+                onOpenPeek={() => setIsPeekOpen(true)}
+                hasScannedDocuments={scannedBcDocuments.length > 0}
+                onContinueToPreview={() => {
+                  setWorkflowStep('preview');
+                }}
+              />
+            )}
           </div>
         </div>
 
-        {/* Mobile View (< 1024px): Fullscreen single tab with bottom navigation bar */}
+        {/* Mobile View (< 1024px): Fullscreen single view with bottom navigation bar */}
         <div className="flex lg:hidden flex-1 w-full h-full overflow-hidden flex-col">
           {mobileTab === 'scan' && (
             <div className="flex-1 h-full overflow-hidden pb-16">
@@ -637,6 +558,20 @@ export function App() {
         </div>
       </main>
 
+      {/* Floating AI Assistant Trigger Pill (Desktop) */}
+      <div className="hidden lg:block fixed bottom-5 right-5 z-30">
+        <button
+          type="button"
+          onClick={() => setIsChatOpen(true)}
+          className="flex items-center gap-2 px-3.5 py-2 rounded-full bg-slate-900 text-white shadow-xl hover:bg-slate-800 transition-all hover:scale-105 active:scale-95 border border-slate-700 select-none text-xs font-semibold cursor-pointer"
+          title="Ouvrir l'Assistant IA Journal Alaane"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+          <span>Assistant IA</span>
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+        </button>
+      </div>
+
       {/* iPhone Mobile Bottom Navigation Bar (Hidden on desktop & print) */}
       <MobileTabBar
         activeTab={mobileTab}
@@ -653,6 +588,23 @@ export function App() {
         temoinImage={temoinImage}
       />
 
+      {/* AI Chatbot Window (Desktop & iPhone) */}
+      <AiChatWindow
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        invoice={currentInvoice}
+        publisher={publisher}
+        onApplyAction={(action) => {
+          if (action.type === 'update_invoice_fields') {
+            setCurrentInvoice((prev) => ({
+              ...prev,
+              ...action.payload,
+            }));
+            showToast("Modifications appliquées à la facture.");
+          }
+        }}
+      />
+
       {/* Printable Invoice Anchor for @media print */}
       <div className="hidden print:block">
         <InvoicePreview
@@ -664,7 +616,7 @@ export function App() {
 
       {/* Floating Notification Toast */}
       {toastMessage && (
-        <div className="fixed bottom-20 lg:bottom-5 right-4 lg:right-5 z-50 p-3 px-4 rounded-xl bg-slate-900 text-white text-xs shadow-xl backdrop-blur-md flex items-center gap-2.5 animate-in slide-in-from-bottom-2 duration-200">
+        <div className="fixed bottom-20 lg:bottom-5 left-1/2 -translate-x-1/2 lg:left-auto lg:right-5 lg:translate-x-0 z-50 p-2.5 px-4 rounded-xl bg-slate-900 text-white text-xs shadow-xl backdrop-blur-md flex items-center gap-2.5 animate-in slide-in-from-bottom-2 duration-200">
           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{toastMessage}</span>
         </div>
@@ -678,7 +630,6 @@ export function App() {
         onSelectInvoice={(inv) => {
           setCurrentInvoice(inv);
           setWorkflowStep('editor');
-          setDesktopRightTab('editor');
           setMobileTab('editor');
         }}
         onDeleteInvoice={handleDeleteInvoice}

@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-serif: 'Playfair Display', Georgia, Cambria, serif;
+    --font-mono: 'JetBrains Mono', Menlo, Monaco, Consolas, monospace;
+  }
+
+  body {
+    font-family: var(--font-sans);
+  }
+}
+
+/* ========================================================
+   Print-Perfection Engine for Algerian A4 Invoices
+   ======================================================== */
+@page {
+  size: A4 portrait;
+  margin: 10mm 8mm;
+}
+
+@media print {
+  /* Hide all non-printable application elements */
+  nav,
+  header,
+  footer,
+  aside,
+  button,
+  .no-print,
+  .document-studio,
+  .editor-panel,
+  .modal-backdrop,
+  .toast-container {
+    display: none !important;
+  }
+
+  /* Reset body and html layout */
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  #root {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+  }
+
+  /* Make printable invoice the sole rendered document */
+  #printable-invoice {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #ffffff !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Ensure crisp black text and hairlines */
+  #printable-invoice table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+
+  #printable-invoice th,
+  #printable-invoice td {
+    border-color: #94a3b8 !important;
+  }
+
+  /* Keep wet seal on same page */
+  .stamp-box {
+    page-break-inside: avoid !important;
+  }
+}
+
+/* Custom workbench scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #090d16;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
